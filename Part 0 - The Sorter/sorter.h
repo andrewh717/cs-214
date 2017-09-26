@@ -25,7 +25,7 @@ struct record {
 	int duration;
 	int director_fb_likes;
 	int actor_3_fb_likes;
-	int actor_2_name
+	int actor_2_name;
 	int actor_1_fb_likes;
 	int gross;
 	int num_voted_users;
@@ -38,7 +38,7 @@ struct record {
 	int imdb_score;
 	int aspect_ratio;
 	int movie_fb_likes;
-}
+};
 
 //Suggestion: prototype a mergesort function
 
