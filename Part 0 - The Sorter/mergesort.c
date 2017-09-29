@@ -68,15 +68,15 @@ void mergeSortString(char **str, int length) {
     }
     int mid = length /2;
     int sizeLeft = mid;
-    int sizeRight = size - mid;
+    int sizeRight = length - mid;
     left = (char**) malloc(sizeLeft * sizeof(char *));
     right = (char**) malloc(sizeRight * sizeof(char *));;
     for (i = 0; i < mid; i++) {
-        left[i] = malloc(sizeof(str[i]));
+        left[i] = (char *) malloc(sizeof(str[i]));
         strcpy(left[i], str[i]);
     }
     for (i = mid; i < size; i++) {
-        right[i - mid] = str[i];
+        right[i -  mid] = (char *) malloc(sizeof(str[i]));
         strcpy(right[i - mid], str[i]);
     }
     mergeSortString(left, sizeLeft);
