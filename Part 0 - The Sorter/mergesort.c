@@ -1,5 +1,6 @@
-#include"sorter.h"
-#include<string.h>
+// Authors: Andrew Hernandez & Malek Saadeh
+// CS214: Systems Programming Fall 2017
+#include"mergesort.h"
 
 // Mergesort for array of integers
 void mergeInt(int *left, int *right, int *arr, int sizeLeft, int sizeRight) {
@@ -76,12 +77,12 @@ void mergeString(char **arr, int low, int mid, int high) {
     }
 }
 
-void mergeSortString(char **str, int low, int high) {
+void mergeSortString(char **arr, int low, int high) {
     if (low < high) {
     	int mid = low + (high - low) / 2;
-    	mergeSortString(str, low, mid);
-    	mergeSortString(str, mid + 1, high);
-    	mergeString(str, low, mid, high);
+    	mergeSortString(arr, low, mid);
+    	mergeSortString(arr, mid + 1, high);
+    	mergeString(arr, low, mid, high);
 	}
 }
 
