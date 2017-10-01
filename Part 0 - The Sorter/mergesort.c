@@ -44,10 +44,25 @@ void mergeSortInt(int *arr, int size) {
 }
 
 // Mergesort for array of strings
-void mergeString(char **left, char **right, char **arr, int sizeLeft, int sizeRight){
-    int i = 0, j = 0, k = 0;
+void mergeString(char **arr, int low, int mid, int high) {
+	int i, j, k;
+	int sizeLeft = mid - low + 1;
+	int sizeRight = high - mid;
+	char **left = (char **)malloc(sizeLeft * sizeof(char *));
+	char **right = (char **)malloc(sizeRight * sizeof(char *));
+	for (i = 0; i < sizeLeft; i++) {
+		left[i] = (char *)malloc(strlen(arr[low + i]) + 1);
+		strcpy(left[i], arr[low + i]);
+	}
+	for (j = 0; j < sizeRight; j++) {
+		right[j] = (char *)malloc(strlen(arr[mid + 1 + j]) + 1);
+		strcpy(right[j], arr[mid + 1 + j]);
+	}
+	i = 0; // Initial index of left array
+	j = 0; // Initial index of right array
+	k = low; // Initial index of merged array
     while (i < sizeLeft && j < sizeRight) {
-        if (strcmp(left[i], right[i]) < 0) {
+        if (strcmp(left[i], right[j]) < 0) {
             strcpy(arr[k++], left[i++]);
         } else {
             strcpy(arr[k++], right[j++]);
@@ -61,28 +76,13 @@ void mergeString(char **left, char **right, char **arr, int sizeLeft, int sizeRi
     }
 }
 
-void mergeSortString(char **str, int size) {
-    int i;
-	// Need at least 2 items to sort
-    if (size < 2) {
-        return;
-    }
-    int mid = size/2;
-    int sizeLeft = mid;
-    int sizeRight = size - mid;
-    char **left = malloc(sizeLeft * sizeof(char *));
-    char **right = malloc(sizeRight * sizeof(char *));;
-    for (i = 0; i < mid; i++) {
-        left[i] = (char *)malloc(sizeof(str[i]));
-        strcpy(left[i], str[i]);
-    }
-    for (i = mid; i < size; i++) {
-        right[i - mid] = (char *)malloc(sizeof(str[i]));
-        strcpy(right[i - mid], str[i]);
-    }
-    mergeSortString(left, sizeLeft);
-    mergeSortString(right, sizeRight);
-    mergeString(left, right, str, sizeLeft, sizeRight);
+void mergeSortString(char **str, int low, int high) {
+    if (low < high) {
+    	int mid = low + (high - low) / 2;
+    	mergeSortString(str, low, mid);
+    	mergeSortString(str, mid + 1, high);
+    	mergeString(str, low, mid, high);
+	}
 }
 
 // For testing purposes
@@ -117,7 +117,7 @@ int main() {
         strings[i] = malloc(sizeof(char) * 256);
         scanf("%s", strings[i]);
     }
-    mergeSortString(strings, numStrings);
+    mergeSortString(strings, 0, numStrings - 1);
     printf("\nHere is the sorted array of strings:\n");
     for(i = 0; i < numStrings; i++){
         if(i == (numStrings - 1)){
