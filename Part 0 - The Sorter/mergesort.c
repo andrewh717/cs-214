@@ -61,29 +61,28 @@ void mergeString(char **left, char **right, char **arr, int sizeLeft, int sizeRi
     }
 }
 
-void mergeSortString(char **str, int length) {
-    char **left, **right, i;
-    if (length < 2) {
+void mergeSortString(char **str, int size) {
+    int i;
+	// Need at least 2 items to sort
+    if (size < 2) {
         return;
     }
-    int mid = length /2;
+    int mid = size/2;
     int sizeLeft = mid;
-    int sizeRight = length - mid;
-    left = (char**) malloc(sizeLeft * sizeof(char *));
-    right = (char**) malloc(sizeRight * sizeof(char *));;
+    int sizeRight = size - mid;
+    char **left = malloc(sizeLeft * sizeof(char *));
+    char **right = malloc(sizeRight * sizeof(char *));;
     for (i = 0; i < mid; i++) {
-        left[i] = (char *) malloc(sizeof(str[i]));
+        left[i] = (char *)malloc(sizeof(str[i]));
         strcpy(left[i], str[i]);
     }
     for (i = mid; i < size; i++) {
-        right[i -  mid] = (char *) malloc(sizeof(str[i]));
+        right[i - mid] = (char *)malloc(sizeof(str[i]));
         strcpy(right[i - mid], str[i]);
     }
     mergeSortString(left, sizeLeft);
     mergeSortString(right, sizeRight);
-    mergeString(left, right, arr, sizeLeft, sizeRight);
-    free(left);
-    free(right);
+    mergeString(left, right, str, sizeLeft, sizeRight);
 }
 
 // For testing purposes
@@ -111,11 +110,11 @@ int main() {
     // Testing mergeSortString
     int numStrings;
     printf("\nPlease enter the number of strings to be sorted:\n");
-    scanf("%d", numStrings);
+    scanf("%d", &numStrings);
     char **strings = (char **) malloc(numStrings * sizeof(char *));
     printf("Enter the strings:\n");
     for(i = 0; i < numStrings; i++){
-        strings[i] = malloc(sizeof(char) * 10);
+        strings[i] = malloc(sizeof(char) * 256);
         scanf("%s", strings[i]);
     }
     mergeSortString(strings, numStrings);
