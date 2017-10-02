@@ -2,7 +2,6 @@
 // CS214: Systems Programming Fall 2017
 #include<stdio.h>
 #include<stdlib.h>
-#include<errno.h>
 
 /*****
 *
@@ -13,7 +12,7 @@
 ******/
 
 //Suggestion: define a struct that mirrors a record (row) of the data set
-struct record {
+typedef struct record {
 	char *color;
 	char *director_name;
 	char *actor_3_name;
@@ -38,10 +37,10 @@ struct record {
 	int budget;
 	int title_year;
 	int actor_2_facebook_likes;
-	int imdb_score;
-	int aspect_ratio;
+	double imdb_score;
+	double aspect_ratio;
 	int movie_fb_likes;
-};
+} record;
 
 //Suggestion: prototype a mergesort function
 
