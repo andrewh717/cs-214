@@ -304,8 +304,11 @@ int main(int argc, char **argv) {
 	}
 	for(i = 0; i < numRecords; i++) {
 		//printf("%s, %d\n", arr[i].genres, arr[i].num_voted_users);
-		
-
+		// Need to do the actual sorting of records... Not sure exactly how to.
+		// Might need to adapt the code of mergesort.c
+		// I wrote methods to sort arrays of ints and arrays of strings,
+		// so basically what we need to do is adapt it so that we reorder our array of records
+		// in the correct sorted order.
 	}
     exit(EXIT_SUCCESS);
 }
