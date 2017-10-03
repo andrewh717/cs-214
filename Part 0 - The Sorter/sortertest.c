@@ -27,6 +27,21 @@ void trim(char *str) {
 	}*/
 }
 
+// Checks array of strings for duplicates
+// Returns 1 if duplicates are found, 0 otherwise
+int checkForDuplicates(char **str, int numStrings) {
+	int i, j;
+	for (i = 0; i < numStrings; i++) {
+		for (j = i + 1; j < numStrings; j++) {
+			if (strcmp(str[i], str[j]) == 0) {
+				printf("Error: Duplicate column names found!\nCSV column names should be unique\n");
+				return 1;
+			}
+		} 
+	}
+	return 0;
+}
+
 int main(int argc, char **argv) {
 	//printf("argc = %d\n", argc);
 	//printf("argv[argc] = %s\n", argv[argc]);
@@ -38,7 +53,7 @@ int main(int argc, char **argv) {
 		printf("Error: Incorrect first parameter given\nPlease use -c as the first parameter");
 		exit(EXIT_FAILURE);
 	}
-	int i, numRecords;
+	int i, numRecords, numColumns, currentToken;
 	char *line = NULL;
 	size_t len = 0;
 	ssize_t nread; // getline must return a variable of ssize_t containing the number of characters read
@@ -46,9 +61,29 @@ int main(int argc, char **argv) {
 	record *arr = malloc(sizeof(record));
 	while ((nread = getline(&line, &len, stdin) != -1)) {
 		arr = realloc(arr, (numRecords + 1) * sizeof(record));
+		// Check if the given sort parameter is actually a column in the CSV
+		if (numRecords == 1) {
+			numColumns = currentToken; // The number of columns is the same as the number of tokens in a line
+			if (checkForDuplicates(arr[0].line, numColumns) == 1) {
+				exit(EXIT_FAILURE);
+			}
+			int paramFound = 0;
+			for (i = 0; i < numColumns; i++) {
+				// The sort parameter only needs to be found once
+				// If it is found, we proceed with the rest of the program
+				if (strcmp(arr[0].line[i], argv[2]) == 0) {
+					paramFound = 1;
+				}
+			}
+			// If the sort parameter is not found, exit the program
+			if (paramFound == 0) {
+				printf("Error: Sort parameter does not exist in the given file\n");
+				exit(EXIT_FAILURE);
+			}
+		}
 		char *token, *end = line;	
 		char *temp = strstr(line, "\"");
-		int currentToken = 0;
+		currentToken = 0;
 		arr[numRecords].line = malloc(sizeof(char **));
 		while (end != NULL) {
 			int containsQuote = 0;
@@ -73,17 +108,14 @@ int main(int argc, char **argv) {
 		numRecords++;
 	}
 	//char *sortBy;
-	int j;
-	for(i = 0; i < numRecords; i++) {
-		for(j = 0; j < 28; j++) {
-			if(j != 27){printf("%s,", arr[i].line[j]);}else{printf("%s", arr[i].line[j]);}
+	int j=0;
+	// Prints out all the records of the new CSV (including the column names)
+	for(i = 0; i < numRecords; i++) { // i < numRecords
+		for(j = 0; j < numColumns; j++) {
+			if(j != (numColumns - 1)){printf("%s,", arr[i].line[j]);}else{printf("%s", arr[i].line[j]);}
 		}
 		printf("\n");
-		// Need to do the actual sorting of records... Not sure exactly how to.
-		// Might need to adapt the code of mergesort.c
-		// I wrote methods to sort arrays of ints and arrays of strings,
-		// so basically what we need to do is adapt it so that we reorder our array of records
-		// in the correct sorted order.
+		// Need to do the actual sorting of records now!
 	}
 	exit(EXIT_SUCCESS);
 }
