@@ -2,6 +2,26 @@
 // CS214: Systems Programming Fall 2017
 #include"mergesort.h"
 
+void lineSwap(char **str1, char **str2, int numColumns) {
+	int i;
+	for (i = 0; i < numColumns; i++) { 
+		if (strlen(str1[i]) > strlen(str2[i])) {
+			char *temp = malloc(strlen(str1[i]) * sizeof(char) + 1);
+			strcpy(temp, str1[i]);
+			strcpy(str1[i], str2[i]);
+			strcpy(str2[i], temp);
+			// NEED TO SUCCESSFULLY SWAP THE STRINGS
+		} else {
+			char *temp = malloc(strlen(str2[i]) * sizeof(char) + 1);
+			strcpy(temp, str2[i]);
+			strcpy(str2[i], str1[i]);
+			//strcpy(str1[i], temp);
+			str1[i] = malloc(strlen(temp) * sizeof(char) + 1);
+			strcpy(str1[i], temp);
+		}
+	}
+}
+
 // Mergesort for array of integers
 void mergeInt(int *left, int *right, int *arr, int sizeLeft, int sizeRight) {
     int i = 0, j = 0, k = 0;
@@ -45,49 +65,109 @@ void mergeSortInt(int *arr, int size) {
 }
 
 // Mergesort for array of strings
-void mergeString(char **arr, int low, int mid, int high) {
+void mergeString(record *arr, int columnIndex, int low, int mid, int high) {
 	int i, j, k;
 	int sizeLeft = mid - low + 1;
 	int sizeRight = high - mid;
-	char **left = (char **)malloc(sizeLeft * sizeof(char *));
-	char **right = (char **)malloc(sizeRight * sizeof(char *));
+	record *left, *right;
+	left = malloc(sizeLeft * sizeof(record));
+	right = malloc(sizeRight * sizeof(record));
 	for (i = 0; i < sizeLeft; i++) {
-		left[i] = (char *)malloc(strlen(arr[low + i]) + 1);
-		strcpy(left[i], arr[low + i]);
+		if (i == 0) {
+			left[i].line = malloc(sizeof(char **));
+		} else {
+			left[i].line = realloc(left[i].line, (sizeLeft + 1) * sizeof(char **));
+		}
+		left[i].line[columnIndex] = malloc(strlen(arr[low + i].line[columnIndex]) * sizeof(char) + 1);
+		strcpy(left[i].line[columnIndex], arr[low + i].line[columnIndex]);
 	}
 	for (j = 0; j < sizeRight; j++) {
-		right[j] = (char *)malloc(strlen(arr[mid + 1 + j]) + 1);
-		strcpy(right[j], arr[mid + 1 + j]);
+		if (i == 0) {
+			right[j].line = malloc(sizeof(char **));
+		} else {
+			right[j].line = realloc(right[j].line, (sizeRight + 1) * sizeof(char **));
+		}
+		right[j].line[columnIndex] = malloc(strlen(arr[mid + 1 + j].line[columnIndex]) * sizeof(char) + 1);
+		strcpy(right[j].line[columnIndex], arr[mid + 1 + j].line[columnIndex]);
 	}
 	i = 0; // Initial index of left array
 	j = 0; // Initial index of right array
 	k = low; // Initial index of merged array
     while (i < sizeLeft && j < sizeRight) {
-        if (strcmp(left[i], right[j]) < 0) {
-            strcpy(arr[k++], left[i++]);
+        if (strcmp(left[i].line[columnIndex], right[j].line[columnIndex]) < 0) {
+			lineSwap(arr[k].line, left[i++].line, arr[k].numColumns);
+			k++;
+            //strcpy(arr[k++], left[i++]);
+            //free(left[i]) and then i++; (would have to remove the post-increment above)
         } else {
-            strcpy(arr[k++], right[j++]);
+        	lineSwap(arr[k].line, right[j++].line, arr[k].numColumns);
+        	k++;
+            //strcpy(arr[k++], right[j++]);
         }
     }
     while (i < sizeLeft) {
-        strcpy(arr[k++], left[i++]);
+        lineSwap(arr[k].line, left[i++].line, arr[k].numColumns);
+		k++;
     }
     while (j < sizeRight) {
-        strcpy(arr[k++], right[j++]);
+        lineSwap(arr[k].line, right[j++].line, arr[k].numColumns);
+        k++;
     }
 }
 
-void mergeSortString(char **arr, int low, int high) {
+void mergeSortString(record *arr, int columnIndex, int low, int high) {
     if (low < high) {
     	int mid = low + (high - low) / 2;
-    	mergeSortString(arr, low, mid);
-    	mergeSortString(arr, mid + 1, high);
-    	mergeString(arr, low, mid, high);
+    	mergeSortString(arr, columnIndex, low, mid);
+    	mergeSortString(arr, columnIndex, mid + 1, high);
+    	mergeString(arr, columnIndex, low, mid, high);
 	}
 }
 
+int checkType (char *str) {
+	int i, isInt;
+	isInt = 0;
+	for (i = 0; i < strlen(str); i++) {
+		if (isdigit(str[i]) != 0) {
+			continue;
+		} else {
+			isInt = 1;
+			break;
+		}
+	}
+	// A string is a floating point number if the first and last characters are digits, 
+	// and the string contains a period (aka decimal point)
+	char *temp = strstr(str, ".");
+	if ((isdigit(str[0]) != 0) && (isdigit(str[strlen(str)-1]) != 0) && (temp != NULL)) {
+		return 2; // Treat the string as a double
+	}
+	if (isInt == 0) {
+		return 1; // Treat the string as an int
+	}
+	return 0; // If it's not an int or a double, treat it as a string
+}
+
+void mergeSort(record *arr, int columnIndex, int numRecords) {
+	int type;
+	type = checkType(arr[1].line[columnIndex]);
+	switch (type) {
+		case 0 : // The token is a string
+			mergeSortString(arr, columnIndex, 1, numRecords - 1);
+			break;
+		case 1 : // The token is an int
+			//mergeSortInt();
+			break;
+		case 2 : // The token is a double
+			//mergeSortDouble();
+			break;
+		default :
+			break;
+	}
+	return;
+}
+
 // For testing purposes
-int main() {
+/*int main() {
     int i;
 	// Declare and initialize array of integers to be sorted
     int a[] = {1,5,3,6,88,11,2};
@@ -127,5 +207,6 @@ int main() {
             printf("%s, ", strings[i]);
         }        
     }
+ 
     return 0;
-}
+} */

@@ -42,6 +42,22 @@ int checkForDuplicates(char **str, int numStrings) {
 	return 0;
 }
 
+int getColumnIndex(record *arr, int numColumns, char *columnName) {
+	int i;
+	for (i = 0; i < numColumns; i++) {
+		if (strcmp(arr[0].line[i], columnName) == 0) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+void sortRecords(record *arr, int columnIndex, int numRecords) {
+	int i;
+	for (i = 1; i < numRecords; i++) {
+	
+	}
+}
 int main(int argc, char **argv) {
 	//printf("argc = %d\n", argc);
 	//printf("argv[argc] = %s\n", argv[argc]);
@@ -53,7 +69,7 @@ int main(int argc, char **argv) {
 		printf("Error: Incorrect first parameter given\nPlease use -c as the first parameter");
 		exit(EXIT_FAILURE);
 	}
-	int i, numRecords, numColumns, currentToken;
+	int i, j, numRecords, numColumns, currentToken;
 	char *line = NULL;
 	size_t len = 0;
 	ssize_t nread; // getline must return a variable of ssize_t containing the number of characters read
@@ -97,7 +113,7 @@ int main(int argc, char **argv) {
 				token = strsep(&end, "\"");
 				end++;
 			}
-			if (currentToken > 0){
+			if (currentToken > 0) {
 				arr[numRecords].line = realloc(arr[numRecords].line, (currentToken + 1) * sizeof(char **));
 			}
 			trim(token);
@@ -105,10 +121,18 @@ int main(int argc, char **argv) {
 			strcpy(arr[numRecords].line[currentToken], token);
 			currentToken++;
 		}
+		arr[numRecords].numColumns = numColumns;
 		numRecords++;
 	}
-	//char *sortBy;
-	int j=0;
+	
+	int columnIndex = getColumnIndex(arr, numColumns, argv[2]);
+	if (columnIndex < 0) {
+		exit(EXIT_FAILURE);
+	} else {
+		mergeSort(arr, columnIndex, numRecords);
+	}
+	
+	
 	// Prints out all the records of the new CSV (including the column names)
 	for(i = 0; i < numRecords; i++) { // i < numRecords
 		for(j = 0; j < numColumns; j++) {
