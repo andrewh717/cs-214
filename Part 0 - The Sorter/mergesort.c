@@ -2,6 +2,7 @@
 // CS214: Systems Programming Fall 2017
 #include"mergesort.h"
 
+// Method to swap records by swapping their line members
 void lineSwap(char **str1, char **str2, int numColumns) {
 	int i;
 	for (i = 0; i < numColumns; i++) { 
