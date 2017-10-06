@@ -76,6 +76,9 @@ int main(int argc, char **argv) {
 	numRecords = 0;
 	record *arr = malloc(sizeof(record));
 	while ((nread = getline(&line, &len, stdin) != -1)) {
+		if (strstr(line, ",") == NULL) {
+			break;
+		}
 		arr = realloc(arr, (numRecords + 1) * sizeof(record));
 		// Check if the given sort parameter is actually a column in the CSV
 		if (numRecords == 1) {

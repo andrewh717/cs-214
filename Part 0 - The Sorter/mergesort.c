@@ -57,6 +57,9 @@ void mergeRecord(record *arr, int columnIndex, int low, int mid, int high, int t
 		} else if ((type == 1 || 2) && ((strcmp(left[i].line[columnIndex], "") != 0) && (strcmp(right[j].line[columnIndex], "") == 0))) {
 			lineSwap(arr[k].line, right[j++].line, arr[k].numColumns);
 			k++;
+		} else if ((type == 1 || 2) && ((strcmp(left[i].line[columnIndex], "") == 0) && (strcmp(right[j].line[columnIndex], "") == 0))) {
+			lineSwap(arr[k].line, left[i++].line, arr[k].numColumns);
+			k++;
 		} else if (type == 1 && (atoi(left[i].line[columnIndex]) < atoi(right[j].line[columnIndex]))) {
 			lineSwap(arr[k].line, left[i++].line, arr[k].numColumns);
 			k++;
