@@ -50,7 +50,14 @@ void mergeRecord(record *arr, int columnIndex, int low, int mid, int high, int t
         if (type == 0 && (strcmp(left[i].line[columnIndex], right[j].line[columnIndex]) < 0)) {
 			lineSwap(arr[k].line, left[i++].line, arr[k].numColumns);
 			k++;
-        } else if (type == 1 && (atoi(left[i].line[columnIndex]) < atoi(right[j].line[columnIndex]))) {
+        } else if ((type == 1 || 2) && ((strcmp(left[i].line[columnIndex], "") == 0) && (strcmp(right[j].line[columnIndex], "") != 0))) {
+			lineSwap(arr[k].line, left[i++].line, arr[k].numColumns);
+			k++;
+			// For some reason, the numeric types that are empty strings are sorted in reverse order of how they appear in the original CSV
+		} else if ((type == 1 || 2) && ((strcmp(left[i].line[columnIndex], "") != 0) && (strcmp(right[j].line[columnIndex], "") == 0))) {
+			lineSwap(arr[k].line, right[j++].line, arr[k].numColumns);
+			k++;
+		} else if (type == 1 && (atoi(left[i].line[columnIndex]) < atoi(right[j].line[columnIndex]))) {
 			lineSwap(arr[k].line, left[i++].line, arr[k].numColumns);
 			k++;
         } else if (type == 2 && (atof(left[i].line[columnIndex]) < atof(right[j].line[columnIndex]))) {
@@ -103,6 +110,21 @@ int checkType (char *str) {
 	return 0; // If it's not an int or a double, treat it as a string
 }
 
+void addQuotes (record *arr, int numRecords) {
+	int i, j;
+	for (i = 0; i < numRecords; i++) {
+		for (j = 0; j < arr[0].numColumns; j++) {
+			if (strstr(arr[i].line[j], ",") != NULL) {
+				// Allocate enough room
+				char *temp = malloc(strlen(arr[i].line[j]) * sizeof(char) + 1);
+				strcpy(temp, arr[i].line[j]); 
+				arr[i].line[j] = realloc(arr[i].line[j], strlen(arr[i].line[j]) * sizeof(char) + 3);
+				snprintf(arr[i].line[j], strlen(arr[i].line[j]) + 3, "\"%s\"", temp);	
+			}
+		}
+	}
+}
+
 void mergeSort(record *arr, int columnIndex, int numRecords) {
 	int type;
 	type = checkType(arr[1].line[columnIndex]);
@@ -110,50 +132,6 @@ void mergeSort(record *arr, int columnIndex, int numRecords) {
 	// If type == 1, the token is an int
 	// If type == 2, the token is a double
 	mergeSortRecord(arr, columnIndex, 1, numRecords, type);
+	addQuotes(arr, numRecords);
 	return;
 }
-
-// For testing purposes
-/*int main() {
-    int i;
-	// Declare and initialize array of integers to be sorted
-    int a[] = {1,5,3,6,88,11,2};
-	// Need to get the size of the array now because it needs to be done in scope of the array declaration
-	int size = sizeof(a)/sizeof(a[0]);
-	// Create a pointer to the array of integers
-	int *ptr;
-	ptr = a;
-    printf("Original:\n");
-    for(i = 0; i < (size); i++) {
-        printf("%d ", a[i]);
-    }
-	// Pass the pointer and the size of the array
-    mergeSortInt(ptr, size);
-    printf("\nSorted:\n");
-    for(i = 0; i < (size); i++) {
-        printf("%d ", a[i]);
-    }
-    printf("\n");
-    
-    // Testing mergeSortString
-    int numStrings;
-    printf("\nPlease enter the number of strings to be sorted:\n");
-    scanf("%d", &numStrings);
-    char **strings = (char **) malloc(numStrings * sizeof(char *));
-    printf("Enter the strings:\n");
-    for(i = 0; i < numStrings; i++){
-        strings[i] = malloc(sizeof(char) * 256);
-        scanf("%s", strings[i]);
-    }
-    mergeSortString(strings, 0, numStrings - 1);
-    printf("\nHere is the sorted array of strings:\n");
-    for(i = 0; i < numStrings; i++){
-        if(i == (numStrings - 1)){
-            printf("%s", strings[i]);
-        } else {
-            printf("%s, ", strings[i]);
-        }        
-    }
- 
-    return 0;
-} */

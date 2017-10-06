@@ -19,3 +19,5 @@ void mergeRecord(record *arr, int columnIndex, int low, int mid, int high, int t
 void mergeSortRecord(record *arr, int columnIndex, int low, int high, int type);
 
 void mergeSort(record *arr, int columnIndex, int numRecords);
+
+void addQuotes(record *arr, int numRecords);

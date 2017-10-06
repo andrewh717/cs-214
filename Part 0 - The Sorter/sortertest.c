@@ -99,17 +99,13 @@ int main(int argc, char **argv) {
 			}
 		}
 		char *token, *end = line;	
-		char *temp = strstr(line, "\"");
+		//char *temp = strstr(line, "\"");
 		currentToken = 0;
 		arr[numRecords].line = malloc(sizeof(char **));
 		while (end != NULL) {
-			int containsQuote = 0;
-			if ((temp != NULL) && (currentToken == 11)) {
-				containsQuote = 1;
-			}
-			if (containsQuote != 1) {
+			if (end[0] != '\"') {
 				token = strsep(&end, ",");	
-			} else if (currentToken == 11) {
+			} else {
 				end++;
 				token = strsep(&end, "\"");
 				end++;
