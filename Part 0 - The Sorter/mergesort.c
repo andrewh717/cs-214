@@ -9,7 +9,8 @@ void lineSwap(char **str1, char **str2, int numColumns) {
 			char *temp = malloc(strlen(str1[i]) * sizeof(char) + 1);
 			strcpy(temp, str1[i]);
 			strcpy(str1[i], str2[i]);
-			strcpy(str2[i], temp);
+			//strcpy(str2[i], temp);
+			str2[i] = temp;
 			// NEED TO SUCCESSFULLY SWAP THE STRINGS
 		} else {
 			char *temp = malloc(strlen(str2[i]) * sizeof(char) + 1);
@@ -71,24 +72,22 @@ void mergeString(record *arr, int columnIndex, int low, int mid, int high) {
 	int sizeRight = high - mid;
 	record *left, *right;
 	left = malloc(sizeLeft * sizeof(record));
+	//left.numColumns = arr.numColumns;
 	right = malloc(sizeRight * sizeof(record));
+	//right.numColumns = arr.numColumns;
 	for (i = 0; i < sizeLeft; i++) {
-		if (i == 0) {
-			left[i].line = malloc(sizeof(char **));
-		} else {
-			left[i].line = realloc(left[i].line, (sizeLeft + 1) * sizeof(char **));
+		left[i].line = malloc(arr[0].numColumns * sizeof(char **));
+		for (k = 0; k < arr[0].numColumns; k++) {
+			left[i].line[k] = malloc(strlen(arr[low + i].line[k]) * sizeof(char) + 1);
+			strcpy(left[i].line[k], arr[low + i].line[k]);
 		}
-		left[i].line[columnIndex] = malloc(strlen(arr[low + i].line[columnIndex]) * sizeof(char) + 1);
-		strcpy(left[i].line[columnIndex], arr[low + i].line[columnIndex]);
 	}
 	for (j = 0; j < sizeRight; j++) {
-		if (i == 0) {
-			right[j].line = malloc(sizeof(char **));
-		} else {
-			right[j].line = realloc(right[j].line, (sizeRight + 1) * sizeof(char **));
+		right[j].line = malloc(arr[0].numColumns * sizeof(char **));
+		for (k = 0; k < arr[0].numColumns; k++) {
+			right[j].line[k] = malloc(strlen(arr[mid + 1 + j].line[k]) * sizeof(char) + 1);
+			strcpy(right[j].line[k], arr[mid + 1 + j].line[k]);
 		}
-		right[j].line[columnIndex] = malloc(strlen(arr[mid + 1 + j].line[columnIndex]) * sizeof(char) + 1);
-		strcpy(right[j].line[columnIndex], arr[mid + 1 + j].line[columnIndex]);
 	}
 	i = 0; // Initial index of left array
 	j = 0; // Initial index of right array
@@ -152,7 +151,7 @@ void mergeSort(record *arr, int columnIndex, int numRecords) {
 	type = checkType(arr[1].line[columnIndex]);
 	switch (type) {
 		case 0 : // The token is a string
-			mergeSortString(arr, columnIndex, 1, numRecords - 1);
+			mergeSortString(arr, columnIndex, 1, numRecords);
 			break;
 		case 1 : // The token is an int
 			//mergeSortInt();

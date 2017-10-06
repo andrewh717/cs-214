@@ -80,6 +80,7 @@ int main(int argc, char **argv) {
 		// Check if the given sort parameter is actually a column in the CSV
 		if (numRecords == 1) {
 			numColumns = currentToken; // The number of columns is the same as the number of tokens in a line
+			arr[0].numColumns = numColumns; // Setting the number of columns for the row containing column names
 			if (checkForDuplicates(arr[0].line, numColumns) == 1) {
 				exit(EXIT_FAILURE);
 			}
@@ -129,7 +130,7 @@ int main(int argc, char **argv) {
 	if (columnIndex < 0) {
 		exit(EXIT_FAILURE);
 	} else {
-		mergeSort(arr, columnIndex, numRecords);
+		mergeSort(arr, columnIndex, numRecords - 1);
 	}
 	
 	
