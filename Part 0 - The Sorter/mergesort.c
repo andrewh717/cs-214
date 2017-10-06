@@ -9,72 +9,25 @@ void lineSwap(char **str1, char **str2, int numColumns) {
 			char *temp = malloc(strlen(str1[i]) * sizeof(char) + 1);
 			strcpy(temp, str1[i]);
 			strcpy(str1[i], str2[i]);
-			//strcpy(str2[i], temp);
 			str2[i] = temp;
-			// NEED TO SUCCESSFULLY SWAP THE STRINGS
 		} else {
 			char *temp = malloc(strlen(str2[i]) * sizeof(char) + 1);
 			strcpy(temp, str2[i]);
 			strcpy(str2[i], str1[i]);
-			//strcpy(str1[i], temp);
 			str1[i] = malloc(strlen(temp) * sizeof(char) + 1);
 			strcpy(str1[i], temp);
 		}
 	}
 }
 
-// Mergesort for array of integers
-void mergeInt(int *left, int *right, int *arr, int sizeLeft, int sizeRight) {
-    int i = 0, j = 0, k = 0;
-    while (i < sizeLeft && j < sizeRight) {
-        if (left[i] < right[j]) {
-            // Doing the increments in the array-reference makes this more compact
-            arr[k++] = left[i++];
-        } else {
-            arr[k++] = right[j++];
-        }
-    }
-    while (i < sizeLeft) {
-        arr[k++] = left[i++];
-    }
-    while (j < sizeRight) {
-        arr[k++] = right[j++];
-    }
-}
-
-void mergeSortInt(int *arr, int size) {
-    int *left, *right, i;
-    if (size < 2) {
-        return;
-    }
-    int mid = size / 2;
-    int sizeLeft = mid;
-    int sizeRight = size - mid;
-    left = (int*) malloc(sizeLeft * sizeof(int));
-    right = (int*) malloc(sizeRight * sizeof(int));;
-    for (i = 0; i < mid; i++) {
-        left[i] = arr[i];
-    }
-    for (i = mid; i < size; i++) {
-        right[i - mid] = arr[i];
-    }
-    mergeSortInt(left, sizeLeft);
-    mergeSortInt(right, sizeRight);
-    mergeInt(left, right, arr, sizeLeft, sizeRight);
-    free(left);
-    free(right);
-}
-
-// Mergesort for array of strings
-void mergeString(record *arr, int columnIndex, int low, int mid, int high) {
+// Mergesort for array of records
+void mergeRecord(record *arr, int columnIndex, int low, int mid, int high, int type) {
 	int i, j, k;
 	int sizeLeft = mid - low + 1;
 	int sizeRight = high - mid;
 	record *left, *right;
 	left = malloc(sizeLeft * sizeof(record));
-	//left.numColumns = arr.numColumns;
 	right = malloc(sizeRight * sizeof(record));
-	//right.numColumns = arr.numColumns;
 	for (i = 0; i < sizeLeft; i++) {
 		left[i].line = malloc(arr[0].numColumns * sizeof(char **));
 		for (k = 0; k < arr[0].numColumns; k++) {
@@ -92,16 +45,20 @@ void mergeString(record *arr, int columnIndex, int low, int mid, int high) {
 	i = 0; // Initial index of left array
 	j = 0; // Initial index of right array
 	k = low; // Initial index of merged array
+	
     while (i < sizeLeft && j < sizeRight) {
-        if (strcmp(left[i].line[columnIndex], right[j].line[columnIndex]) < 0) {
+        if (type == 0 && (strcmp(left[i].line[columnIndex], right[j].line[columnIndex]) < 0)) {
 			lineSwap(arr[k].line, left[i++].line, arr[k].numColumns);
 			k++;
-            //strcpy(arr[k++], left[i++]);
-            //free(left[i]) and then i++; (would have to remove the post-increment above)
+        } else if (type == 1 && (atoi(left[i].line[columnIndex]) < atoi(right[j].line[columnIndex]))) {
+			lineSwap(arr[k].line, left[i++].line, arr[k].numColumns);
+			k++;
+        } else if (type == 2 && (atof(left[i].line[columnIndex]) < atof(right[j].line[columnIndex]))) {
+			lineSwap(arr[k].line, left[i++].line, arr[k].numColumns);
+			k++;
         } else {
         	lineSwap(arr[k].line, right[j++].line, arr[k].numColumns);
         	k++;
-            //strcpy(arr[k++], right[j++]);
         }
     }
     while (i < sizeLeft) {
@@ -114,12 +71,12 @@ void mergeString(record *arr, int columnIndex, int low, int mid, int high) {
     }
 }
 
-void mergeSortString(record *arr, int columnIndex, int low, int high) {
+void mergeSortRecord(record *arr, int columnIndex, int low, int high, int type) {
     if (low < high) {
     	int mid = low + (high - low) / 2;
-    	mergeSortString(arr, columnIndex, low, mid);
-    	mergeSortString(arr, columnIndex, mid + 1, high);
-    	mergeString(arr, columnIndex, low, mid, high);
+    	mergeSortRecord(arr, columnIndex, low, mid, type);
+    	mergeSortRecord(arr, columnIndex, mid + 1, high, type);
+    	mergeRecord(arr, columnIndex, low, mid, high, type);
 	}
 }
 
@@ -149,19 +106,10 @@ int checkType (char *str) {
 void mergeSort(record *arr, int columnIndex, int numRecords) {
 	int type;
 	type = checkType(arr[1].line[columnIndex]);
-	switch (type) {
-		case 0 : // The token is a string
-			mergeSortString(arr, columnIndex, 1, numRecords);
-			break;
-		case 1 : // The token is an int
-			//mergeSortInt();
-			break;
-		case 2 : // The token is a double
-			//mergeSortDouble();
-			break;
-		default :
-			break;
-	}
+	// If type == 0, the token is a string
+	// If type == 1, the token is an int
+	// If type == 2, the token is a double
+	mergeSortRecord(arr, columnIndex, 1, numRecords, type);
 	return;
 }
 
