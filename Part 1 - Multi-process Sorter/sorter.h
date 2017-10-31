@@ -25,4 +25,6 @@ int checkForDuplicates(char **str, int numStrings);
 
 int getColumnIndex(record *arr, int numColumns, char *columnName);
 
+void sort(FILE *fp, char *sortParam, char *fileName);
+
 #endif // SORTER_H_
