@@ -6,6 +6,11 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<ctype.h>
+#include<dirent.h>
+#include<unistd.h>
+#include<sys/types.h>
+#include<sys/wait.h>
+
 /*****
 *
 *	Define structures and function prototypes for your sorter
@@ -25,6 +30,6 @@ int checkForDuplicates(char **str, int numStrings);
 
 int getColumnIndex(record *arr, int numColumns, char *columnName);
 
-void sort(FILE *fp, char *sortParam, char *fileName);
+void sort(FILE *fp, char *sortParam, char *fileName, char *outputDir);
 
 #endif // SORTER_H_
