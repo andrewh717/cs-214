@@ -3,6 +3,8 @@
 #include"sorter.h"
 #include"mergesort.h"
 
+int processCounter;
+
 // Trims the leading and trailing space of tokens
 void trim(char *str) {
 	int i;
@@ -80,8 +82,7 @@ void sort(FILE *fp, char *sortParam, char *fileName, char *outputDir){
 			}
 			// If the sort parameter is not found, exit the program
 			if (paramFound == 0) {
-				
-				printf("Error: Sort parameter does not exist in the given file\n");
+				//printf("Error: Sort parameter does not exist in the given file\n");
 				exit(EXIT_FAILURE);
 			}
 		}
@@ -120,6 +121,9 @@ void sort(FILE *fp, char *sortParam, char *fileName, char *outputDir){
 	// Output file is created using fopen
 	// Output file needs to be named as such:
 	// 'movie_metadata.csv' sorted on the field 'movie_title' will result in a file named "movie_metadata-sorted-movie_title.csv".
+	if (opendir(outputDir) == NULL) {
+		mkdir(outputDir, S_IRWXU);
+	}
 	FILE *sortedFile;
 	char *base, *extension;
 	// Grab the extension (Note: it should always be ".csv")
@@ -138,9 +142,9 @@ void sort(FILE *fp, char *sortParam, char *fileName, char *outputDir){
 	// Create the sorted file name (aka <csv_name>-sorted-<sort_parameter>.csv)
 	snprintf(sortedFileName, totalLength + 1, "%s/%s-sorted-%s%s", outputDir, base, sortParam, extension);
 	sortedFile = fopen(sortedFileName, "w");
-	for(i = 0; i < numRecords; i++) { // i < numRecords
-		for(j = 0; j < numColumns; j++) {
-			if(j != (numColumns - 1)){
+	for (i = 0; i < numRecords; i++) { // i < numRecords
+		for (j = 0; j < numColumns; j++) {
+			if (j != (numColumns - 1)) {
 				fprintf(sortedFile, "%s,", arr[i].line[j]);}else{fprintf(sortedFile, "%s", arr[i].line[j]);
 			}
 		}
@@ -148,7 +152,43 @@ void sort(FILE *fp, char *sortParam, char *fileName, char *outputDir){
 	}
 }
 
-int navigateDir(char *dirName, char *output, char *coltosort, int count) {
+
+void countProcesses(char* directory) {
+	DIR *dir;
+	dir = opendir(directory);
+	
+	struct dirent *dp;
+	
+	if(dir == NULL) { 
+		return; 
+	}
+	
+	while ((dp = readdir(dir)) != NULL) {
+		char pathway[1024];
+		snprintf(pathway, sizeof(pathway), "%s/%s", directory, dp->d_name);
+		
+		if(strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0) {
+            continue;
+        }
+
+		if(dp->d_type == 4) {
+            processCounter++;
+            countProcesses(pathway);
+
+        }
+		
+		else if(dp->d_type == DT_REG) {
+            char *name = dp->d_name;
+            int length = strlen(name);
+            /* Check to make sure it's a .csv file that isn't sorted*/
+            if(name[length - 3] == 'c' && name[length - 2] == 's' && name[length - 1] == 'v' && !(strstr(dp->d_name, "-sorted-"))) {
+                    processCounter++;
+            }
+        }
+	}
+}
+
+void navigateDir(char *dirName, char *output, char *coltosort) {
 	DIR *dir;
 	struct dirent *item;
 	int counter = 0;
@@ -156,77 +196,63 @@ int navigateDir(char *dirName, char *output, char *coltosort, int count) {
 	
 	int pid1 = 0; int pid2 = 0;
 	
-	if(dir == NULL) { return 0; }
+	if(dir == NULL) { 
+		return; 
+	}
 	
-	while((item = readdir (dir)) != NULL) 
-	{
-		if (strcmp(item->d_name, ".") == 0 || strcmp(item->d_name, "..") == 0)
-		{
-			//printf("LEL");
+	while((item = readdir (dir)) != NULL) {
+		if (strcmp(item->d_name, ".") == 0 || strcmp(item->d_name, "..") == 0) {
 			continue;
 		}
 		
-		if(item->d_type == 4)
-		{
-			count++;
+		if(item->d_type == 4) {
 			pid1 = fork();
-			
-			if(pid1 == 0)
-			{
+			if(pid1 == 0) {
 				printf("%d, ", getpid()); fflush(stdout);
 				char pathway[1024];
 				snprintf(pathway, sizeof(pathway), "%s/%s", dirName, item->d_name);
-			
-				count = navigateDir(pathway, output, coltosort, count);
-				
+				navigateDir(pathway, output, coltosort);				
 				exit(0);
 			}
-		}
-		
-		else 
-		{
+		} else {
 			int length = strlen(item->d_name);
-			
-			if(item->d_name[length - 1] == 'v' && item->d_name[length - 2] == 's' && item->d_name[length - 3] == 'c' && !(strstr(item->d_name, "sorted")))
-			{
+			if(item->d_name[length - 1] == 'v' && item->d_name[length - 2] == 's' && item->d_name[length - 3] == 'c' && !(strstr(item->d_name, "sorted"))) {
 				counter++;
 				pid2 = fork();
-				if(pid2 == 0) 
-				{
+				if(pid2 == 0) {
 					printf("%d, ", getpid()); fflush(stdout);
 					char pathway[1024];
 					snprintf(pathway, sizeof(pathway), "%s/%s", dirName, item->d_name);
 					FILE *file = fopen(pathway, "r");
 					sort(file, coltosort, pathway, output);
 					exit(0);
-				}
-				
+				}				
 			}
 		}
 	}
 	
-	if (pid1 != 0) {
-		wait(0);
+	if (pid1 != 0) {	
+		wait(0); 
 	}
-	if (pid2 != 0)
-	{
-		count += counter;
-		while(counter > 0)
-		{ wait(0); counter--; }
+	
+	if (pid2 != 0) {
+		while(counter > 0) { 
+			wait(0); 
+			counter--;
+		}
 	}
-
-	return count;
+	return;
 }
 
-/* I started working on the I/O here in main(), basically there can be 3-7 parameters
-   We need to account for:
+/* There can be 3-7 parameters
+   Need to account for:
    ./sorter -c  movie_title 
    ./sorter -c  movie_title -d thisdir
    ./sorter -c  movie_title -o thatdir 
    ./sorter -c  movie_title -d thisdir -o thatdir 
 */
 int main(int argc, char **argv) {
-
+	processCounter = 1;
 	int i = getpid();
 	printf("\n\nInitial PID: %d\n", i); 
 	printf("PIDS of all child processes: "); fflush(stdout);
@@ -239,6 +265,7 @@ int main(int argc, char **argv) {
         printf("Error: Need additional parameters\nDo not forget to use -c and specify column to sort on\n");
 		exit(EXIT_FAILURE);
 	}
+	
 	if (argc > 7) {
 		printf("Error: Too many parameters\nExample parameters: -c <columnName> -d <directoryName> -o <outputDirectoryName>\nNote: -d <directoryName> and -o <outputDirectoryName> are optional\n");
 		exit(EXIT_FAILURE);
@@ -248,13 +275,15 @@ int main(int argc, char **argv) {
     	strcpy(column, argv[2]);
     	strcpy(directory, ".");
     	strcpy(output, ".");
-    }
-    else if (argc == 5) {
+    } else if (argc == 5 && strcmp(argv[3], "-d") == 0) {
     	strcpy(column, argv[2]);
     	strcpy(directory, argv[4]);
-    	strcpy(output, ".");
-    }
-    else if (argc == 7) {
+    	strcpy(output, "");
+    } else if (argc == 5 && strcmp(argv[3], "-o") == 0) {
+    	strcpy(column, argv[2]);
+    	strcpy(directory, ".");
+    	strcpy(output, argv[4]);
+    } else if (argc == 7) {
     	strcpy(column, argv[2]);
     	strcpy(directory, argv[4]);
     	strcpy(output, argv[6]);
@@ -276,21 +305,28 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 	// Checks to make sure -c is specified
-	if (argc >= 3)
-		if(argv[1][0] != '-' && argv[1][1] != 'c')
+	if (argc >= 3) {
+		if(argv[1][0] != '-' && argv[1][1] != 'c') {
 			return -1;
+		}
+	}
+	
 	// Variable to track if directory is specified
 	int nav = 0;
 	int out = 0;
 	// Sets nav & out and verifies valid input
 	if (argc == 5) {
-		if(argv[3][1] != 'd' && argv[3][1] != 'o')
+		if(argv[3][1] != 'd' && argv[3][1] != 'o') {
 			return -1;
-		if (argv[3][1] == 'd') 
+		}
+		if (argv[3][1] == 'd') {
 			nav = 1;
-		if (argv[3][1] == 'o')
+		}
+		if (argv[3][1] == 'o') {
 			out = 1;
+		}
 	}
+	
 	if (argc == 7) {
 		if(argv[3][1] != 'd' || argv[5][1] != 'o') {
 			printf("Error: Invalid input. \nPlease try again.\n");
@@ -299,30 +335,19 @@ int main(int argc, char **argv) {
 		nav = 1;
 		out = 1;
 	}
-
-	int j = 0;
 	
-	if(nav == 1 && out == 0)
-	{
-		j = navigateDir(directory, "", column, 0);
-	}
-	else if(nav == 1 && out == 1)
-	{
-		j = navigateDir(directory, output, column, 0);
-	}
-	else if(nav == 0 && out == 1)
-	{
-		j = navigateDir(".", output, column, 0);
-	}
-	else
-	{
-		j = navigateDir(".", "", column, 0);
+	countProcesses(directory);
+	
+	if(nav == 1 && out == 0) {
+		navigateDir(directory, "", column);
+	} else if(nav == 1 && out == 1)	{
+		navigateDir(directory, output, column);
+	} else if(nav == 0 && out == 1)	{
+		navigateDir(".", output, column);
+	} else {
+		navigateDir(".", "", column);
 	}
 	
-	
-	printf("\nNumber of processes: %d\n\n", j);
+	printf("\nNumber of processes: %d\n\n", processCounter);
 	return 0;
 }
-
-
-
