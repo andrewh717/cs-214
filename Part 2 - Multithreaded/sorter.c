@@ -4,6 +4,8 @@
 #include"mergesort.h"
 
 int processCounter;
+char *column;
+char *outputDir;
 
 // Trims the leading and trailing space of tokens
 void trim(char *str) {
@@ -52,7 +54,7 @@ int getColumnIndex(record *arr, int numColumns, char *columnName) {
 // Sorts a CSV given the file pointer, sort parameter, and the name of the file
 // Since filename can't be extracted from file pointer, it needs to be passed as its own argument
 // Assume that the file has already been checked prior to calling sort() to make sure it is a CSV
-void sort(FILE *fp, char *sortParam, char *fileName, char *outputDir){
+void sort(FILE *fp, char *fileName, char *outputDir){
 	int i, j, numRecords, numColumns, currentToken;
 	char *line = NULL;
 	size_t len = 0;
@@ -76,7 +78,7 @@ void sort(FILE *fp, char *sortParam, char *fileName, char *outputDir){
 			for (i = 0; i < numColumns; i++) {
 				// The sort parameter only needs to be found once
 				// If it is found, we proceed with the rest of the program
-				if (strcmp(arr[0].line[i], sortParam) == 0) {
+				if (strcmp(arr[0].line[i], column) == 0) {
 					paramFound = 1;
 				}
 			}
@@ -109,7 +111,7 @@ void sort(FILE *fp, char *sortParam, char *fileName, char *outputDir){
 		numRecords++;
 	}
 	
-	int columnIndex = getColumnIndex(arr, numColumns, sortParam);
+	int columnIndex = getColumnIndex(arr, numColumns, column);
 	if (columnIndex < 0) {
 		exit(EXIT_FAILURE);
 	} else {
@@ -137,10 +139,10 @@ void sort(FILE *fp, char *sortParam, char *fileName, char *outputDir){
 	if (strcmp(outputDir, "") != 0) {	
 		base = strrchr(base, '/');	
 	}
-	int totalLength = strlen(outputDir) + strlen(base) + strlen("-sorted-") + strlen(sortParam) + strlen(extension) + 1;
+	int totalLength = strlen(outputDir) + strlen(base) + strlen("-sorted-") + strlen(column) + strlen(extension) + 1;
 	char sortedFileName[totalLength];
 	// Create the sorted file name (aka <csv_name>-sorted-<sort_parameter>.csv)
-	snprintf(sortedFileName, totalLength + 1, "%s/%s-sorted-%s%s", outputDir, base, sortParam, extension);
+	snprintf(sortedFileName, totalLength + 1, "%s/%s-sorted-%s%s", outputDir, base, column, extension);
 	sortedFile = fopen(sortedFileName, "w");
 	for (i = 0; i < numRecords; i++) { // i < numRecords
 		for (j = 0; j < numColumns; j++) {
@@ -188,13 +190,14 @@ void countProcesses(char* directory) {
 	}
 }
 
-void navigateDir(char *dirName, char *output, char *coltosort) {
+void navigateDir(char *dirName) {
 	DIR *dir;
 	struct dirent *item;
 	int counter = 0;
 	dir = opendir(dirName);
 	
-	int pid1 = 0; int pid2 = 0;
+	pthread_t tid1 = 0;
+	pthread_t tid2 = 0;
 	
 	if(dir == NULL) { 
 		return; 
@@ -206,25 +209,25 @@ void navigateDir(char *dirName, char *output, char *coltosort) {
 		}
 		
 		if(item->d_type == 4) {
-			pid1 = fork();
-			if(pid1 == 0) {
-				printf("%d, ", getpid()); fflush(stdout);
+			tid1 = pthread_create(&tid1, NULL, );
+			if(tid == 0) {
+				printf("%d, ", gettid()); fflush(stdout);
 				char pathway[1024];
 				snprintf(pathway, sizeof(pathway), "%s/%s", dirName, item->d_name);
-				navigateDir(pathway, output, coltosort);				
+				navigateDir(pathway);				
 				exit(0);
 			}
 		} else {
 			int length = strlen(item->d_name);
 			if(item->d_name[length - 1] == 'v' && item->d_name[length - 2] == 's' && item->d_name[length - 3] == 'c' && !(strstr(item->d_name, "sorted"))) {
 				counter++;
-				pid2 = fork();
+				//tid2 = pthread_create();
 				if(pid2 == 0) {
 					printf("%d, ", getpid()); fflush(stdout);
 					char pathway[1024];
 					snprintf(pathway, sizeof(pathway), "%s/%s", dirName, item->d_name);
 					FILE *file = fopen(pathway, "r");
-					sort(file, coltosort, pathway, output);
+					sort(file, pathway, outputDir);
 					exit(0);
 				}				
 			}
@@ -255,11 +258,11 @@ int main(int argc, char **argv) {
 	processCounter = 1;
 	int i = getpid();
 	printf("\n\nInitial PID: %d\n", i); 
-	printf("PIDS of all child processes: "); fflush(stdout);
+	printf("TIDs of all child threads: "); fflush(stdout);
 	
-	char* column = (char*)malloc(sizeof(char*)*128);
+	column = (char*)malloc(sizeof(char*)*128);
 	char* directory = (char*)malloc(sizeof(char*)*128);
-	char* output = (char*)malloc(sizeof(char*)*128);
+	outputDir = (char*)malloc(sizeof(char*)*128);
 	
 	if (argc < 3) {
         printf("Error: Need additional parameters\nDo not forget to use -c and specify column to sort on\n");
@@ -274,19 +277,19 @@ int main(int argc, char **argv) {
 	if (argc == 3) {
     	strcpy(column, argv[2]);
     	strcpy(directory, ".");
-    	strcpy(output, ".");
+    	strcpy(outputDir, ".");
     } else if (argc == 5 && strcmp(argv[3], "-d") == 0) {
     	strcpy(column, argv[2]);
     	strcpy(directory, argv[4]);
-    	strcpy(output, "");
+    	strcpy(outputDir, "");
     } else if (argc == 5 && strcmp(argv[3], "-o") == 0) {
     	strcpy(column, argv[2]);
     	strcpy(directory, ".");
-    	strcpy(output, argv[4]);
+    	strcpy(outputDir, argv[4]);
     } else if (argc == 7) {
     	strcpy(column, argv[2]);
     	strcpy(directory, argv[4]);
-    	strcpy(output, argv[6]);
+    	strcpy(outputDir, argv[6]);
     }
 	
 	// The -c flag must always be present
@@ -339,15 +342,17 @@ int main(int argc, char **argv) {
 	countProcesses(directory);
 	
 	if(nav == 1 && out == 0) {
-		navigateDir(directory, "", column);
+		strcpy(outputDir, "");
+		navigateDir(directory);
 	} else if(nav == 1 && out == 1)	{
-		navigateDir(directory, output, column);
+		navigateDir(directory);
 	} else if(nav == 0 && out == 1)	{
-		navigateDir(".", output, column);
+		navigateDir(".");
 	} else {
-		navigateDir(".", "", column);
+		strcpy(outputDir, "");
+		navigateDir(".");
 	}
 	
-	printf("\nNumber of processes: %d\n\n", processCounter);
+	printf("\nTotal number of threads: %d\n\n", processCounter);
 	return 0;
 }
