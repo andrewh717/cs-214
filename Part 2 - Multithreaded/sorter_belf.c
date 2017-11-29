@@ -1,8 +1,10 @@
 // Authors: Andrew Hernandez & Michael Belmont
 // CS214: Systems Programming Fall 2017
 #include"sorter.h"
+
 #include"mergesort.h"
 
+LL *csvlist;
 int processCounter;
 char* sortParam;
 // Trims the leading and trailing space of tokens
@@ -50,8 +52,9 @@ int getColumnIndex(record *arr, int numColumns, char *columnName) {
 }
 
 // ADJUSTED FOR PROJECT 2
-void sort(FILE *fp)
+void* sort(void *fpv)
 {
+	FILE *fp = (FILE*)fpv;
 	int i, j, numRecords, numColumns, currentToken;
 	char *line = NULL;
 	size_t len = 0;
@@ -141,14 +144,20 @@ void sort(FILE *fp)
 	pthread_mutex_init(&mutex, NULL);
 	
 	pthread_mutex_lock(&mutex);
-	LL node = csvlist;
-	while(node.next != NULL)
-		node = node.next;
-	LL newNode;
-	newNode.next = NULL;
-	newNode.data = newCSV;
-	node.next = newNode;
-	pthread_mutex_unlock(mutex);
+	
+	LL *newNode;
+	(*newNode).next = NULL;
+	(*newNode).data = newCSV;
+	
+	if (csvlist == NULL) csvlist = newNode;
+	else {
+	LL *node = csvlist;
+	while((*node).next != NULL)
+		node = (*node).next;
+	
+	(*node).next = newNode;
+	}
+	pthread_mutex_unlock(&mutex);
 }
 
 
@@ -193,13 +202,13 @@ void countProcesses(char* directory)
 }
 
 // CURRENTLY WORKING ON
-void navigateDir(char *dirName) {
+void* navigateDir(void *dName) {
+	char *dirName = (char*)dName;
+	
 	DIR *dir;
 	struct dirent *item;
 	int counter = 0;
 	dir = opendir(dirName);
-	
-	int pid1 = 0; int pid2 = 0;
 	
 	if(dir == NULL) { return; }
 	
@@ -215,7 +224,6 @@ void navigateDir(char *dirName) {
 		{
 			char pathway[1024];
 			snprintf(pathway, sizeof(pathway), "%s/%s", dirName, item->d_name);
-			
 			pthread_t tid1;
 			pthread_create(&tid1, NULL, navigateDir, pathway); 
 			
@@ -231,7 +239,6 @@ void navigateDir(char *dirName) {
 				char pathway[1024];
 				snprintf(pathway, sizeof(pathway), "%s/%s", dirName, item->d_name);
 				FILE *file = fopen(pathway, "r");
-				
 				pthread_t tid2;
 				pthread_create(&tid2, NULL, sort, file);
 			}
@@ -399,21 +406,15 @@ int main(int argc, char **argv) {
 	
 	countProcesses(directory);
 	
-	if(dirCheck == 1 && outCheck == 0)
+	csvlist = NULL;
+	
+	if(dirCheck == 1)
 	{
-		navigateDir(directory, "", column);
-	}
-	else if(dirCheck == 1 && outCheck == 1)
-	{
-		navigateDir(directory, output, column);
-	}
-	else if(dirCheck == 0 && outCheck == 1)
-	{
-		navigateDir(".", output, column);
+		navigateDir(directory);
 	}
 	else
 	{
-		navigateDir(".", "", column);
+		navigateDir(".");
 	}
 	
 	printf("\nNumber of threads: %d\n\n", processCounter);

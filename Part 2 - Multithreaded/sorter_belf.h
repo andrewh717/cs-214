@@ -12,6 +12,8 @@
 #include<dirent.h>
 
 #include<pthread.h>
+
+
 /*****
 *
 *	Define structures and function prototypes for your sorter
@@ -31,7 +33,7 @@ typedef struct csvfile {
 } csvfile;
 
 typedef struct LL {
-	csvfile *next;
+	struct LL *next;
 	csvfile data;
 } LL;
 
