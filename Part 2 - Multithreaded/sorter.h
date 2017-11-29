@@ -6,12 +6,12 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<ctype.h>
-#include<dirent.h>
-#include<unistd.h>
-#include<sys/types.h>
-#include<sys/wait.h>
-#include<sys/stat.h>
 
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<dirent.h>
+
+#include<pthread.h>
 /*****
 *
 *	Define structures and function prototypes for your sorter
@@ -25,12 +25,26 @@ typedef struct record {
 	int numColumns;
 } record;
 
+typedef struct csvfile {
+	record *table;
+	int numRows;
+} csvfile;
+
+typedef struct LL {
+	csvfile *next;
+	csvfile data;
+} LL;
+
+// Struct to keep track of child threads
+typedef struct tidLL {
+	pthread_t child;
+	pthread_t nextChild;
+}
+
 void trim(char *str);
 
 int checkForDuplicates(char **str, int numStrings);
 
 int getColumnIndex(record *arr, int numColumns, char *columnName);
-
-void sort(FILE *fp, char *sortParam, char *fileName, char *outputDir);
 
 #endif // SORTER_H_
