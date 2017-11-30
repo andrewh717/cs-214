@@ -6,12 +6,13 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<ctype.h>
-
 #include<sys/types.h>
 #include<sys/stat.h>
 #include<dirent.h>
-
 #include<pthread.h>
+#include<unistd.h>
+
+
 /*****
 *
 *	Define structures and function prototypes for your sorter
@@ -31,15 +32,9 @@ typedef struct csvfile {
 } csvfile;
 
 typedef struct LL {
-	csvfile *next;
+	struct LL *next;
 	csvfile data;
 } LL;
-
-// Struct to keep track of child threads
-typedef struct tidLL {
-	pthread_t child;
-	pthread_t nextChild;
-}
 
 void trim(char *str);
 
