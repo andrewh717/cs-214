@@ -6,12 +6,11 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<ctype.h>
-
 #include<sys/types.h>
 #include<sys/stat.h>
 #include<dirent.h>
-
 #include<pthread.h>
+#include<unistd.h>
 
 
 /*****
