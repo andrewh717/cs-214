@@ -58,6 +58,31 @@ void * service(void *args)
 	// define two buffers, receive and send
 	char send_buf[256] = "Hello World!";
 	char recv_buf[256];
+	char req_buf[7];
+	const char post_req[7] = "~POST~";
+	const char dump_req[7] = "~DUMP~";
+
+	// Perform initial read to determine request type
+	if(read(client_socket, req_buf, 7) < 0){
+		perror("read");
+		exit(EXIT_FAILURE);
+	}
+
+	// POST request received
+	if(strcmp(req_buf, post_req) == 0) {
+		// Prepare to read in CSV contents
+		int receivingCSV = 1;
+		while(receivingCSV == 1) {
+			read(client_socket, recv_buf, 256);
+			// Store a copy of recv_buff in array to form the record
+			// Use a count of the numColumns to know exactly how many entries per line
+		}
+	} 
+	// DUMP request received
+	else if(strcmp(req_buf, get_req) == 0) {
+		// Prepare to send sorted CSV
+	}
+
 	/* STEP 5: receive data */
 	// use read system call to read data
 	// use while loop to read until the whole CSV is received
