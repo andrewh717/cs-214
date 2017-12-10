@@ -59,13 +59,22 @@ void * service(void *args)
 	char send_buf[256] = "Hello World!";
 	char recv_buf[256];
 	/* STEP 5: receive data */
-	// use read system call to read data 
-	read(client_socket, recv_buf, 256);
-	// replace receive buffer with your buffer name
-	printf("[r] Reading from client: %s\n", recv_buf);
+	// use read system call to read data
+	// use while loop to read until the whole CSV is received
+	int receivingCSV = 1;
+	while(receivingCSV){
+		read(client_socket, recv_buf, 256);
+		// if request == sending files, call method to do handle that
+		// else request == done sending files, call method to sort
 
-	/* STEP 6: send data */
-	// prepare your sending data
+		// replace receive buffer with your buffer name
+		printf("[r] Reading from client: %s\n", recv_buf);
+	} 
+	
+	// Received CSV, now add it to list of stored CSVs
+	// Sort list of stored CSVs
+
+	/* STEP 6: send data */*
 	// use write system call to send data
 	write(client_socket, send_buf, 256);
 
@@ -85,10 +94,7 @@ int main(int argc, char **argv)
 {
 	// optional: You can add args checking here
 		
-	// We need a server socket and a client socket
 	int server_sock, client_sock;
-	// Then we need a sockaddr_in struct to hold
-	// socket information
 	struct sockaddr_in address;
 
 	/* STEP 1: create socket and setup sockaddr_in */
@@ -101,10 +107,6 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	// setup the sockaddr_in struct you defined above
-	// sin_family = AF_INET
-	// sin_addr.s_addr = INADDR_ANY
-	// sin_port = htons(port number)
 	address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
 	address.sin_port = htons(PORT);
@@ -112,34 +114,27 @@ int main(int argc, char **argv)
 	/* STEP 2: bind */
 	if (bind(server_sock, (struct sockaddr*)&address, sizeof(address)) < 0)
 	{
-		// perror() report error message
 		perror("bind");
-		// close socket
 		close(server_sock);
-		// exit your program
 		exit(EXIT_FAILURE);
 	}
 
 	/* STEP 3: Listen */
-	// Now we have a binded socket, we can use this 
-	// socket to listen on a port
 	if (listen(server_sock, 0) < 0)
 	{
-		// perror() report error message
 		perror("listen");
-		// close socket
 		close(server_sock);
-		// exit your program
 		exit(EXIT_FAILURE);
 	}
 
 	printf("Waiting for connections...\n");
 
 	init_tid_pool();
-	// we use a while loop to keep waiting for connections
+	
+	// Wait for connects using infinite loop
 	while (status)
 	{
-		/* STEP 4: create connection/accept connection request */
+		/* STEP 4: accept connection request */
 		// use client socket to accept client request
 		// accept(int server_socket, NULL, NULL)
 		// you can setup the second and third arguments other 
@@ -148,11 +143,8 @@ int main(int argc, char **argv)
 		// check if accept() is successful or not
 		if (client_sock < 0)
 		{
-			// perror() report error message
 			perror("accept");
-			// close socket
 			close(server_sock);
-			// exit your program
 			exit(EXIT_FAILURE);
 		}
 
