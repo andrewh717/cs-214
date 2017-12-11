@@ -1,7 +1,7 @@
 #include "sorter_server.h"
 
 /* Macros (define your macros below) */
-#define MAX_NUM_THREAD 10
+#define MAX_NUM_THREAD 1024
 
 // Port numbers
 #define PORT 9000
@@ -43,7 +43,14 @@ void release_tid(int index)
 }
 /********** Helper functions end *********/
 
+pthread_mutex_t records_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t numRecords_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+// Global linked list of records
+record *globalHead = NULL;
+record *globalRear = NULL;
+
+int numRecords = 0;
 
 //////// Part 3: Service function ////////////
 
@@ -56,8 +63,8 @@ void * service(void *args)
 	int index = (int)args;
 	int client_socket = tid_pool[index].socketfd;
 	// define two buffers, receive and send
-	char send_buf[256] = "Hello World!";
-	char recv_buf[256];
+	// char send_buf[256] = "Hello World!";
+	char recv_buf[500];
 	char req_buf[7];
 	const char post_req[7] = "~POST~";
 	const char dump_req[7] = "~DUMP~";
@@ -73,9 +80,12 @@ void * service(void *args)
 		// Prepare to read in CSV contents
 		int receivingCSV = 1;
 		while(receivingCSV == 1) {
-			read(client_socket, recv_buf, 256);
-			// Store a copy of recv_buff in array to form the record
-			// Use a count of the numColumns to know exactly how many entries per line
+			read(client_socket, recv_buf, 500);
+			if(globalHead == NULL) {
+				// malloc record
+				// add to global list?
+			}
+
 		}
 	} 
 	// DUMP request received

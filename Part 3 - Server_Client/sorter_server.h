@@ -19,7 +19,9 @@
 typedef struct record {
 	char **line;
 	int numColumns;
+	struct record *next;
 } record;
+
 
 typedef struct csvfile {
 	record *table;
