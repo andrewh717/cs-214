@@ -49,4 +49,6 @@ int getColumnIndex(record *arr, int numColumns, char *columnName);
 
 int get_tid();
 
+record * freeRecord(record *ptr);
+
 #endif // SORTER_SERVER_H_
