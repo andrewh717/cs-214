@@ -187,8 +187,10 @@ void * service(void *args) {
 	else if(strcmp(req_buf, dump_req) == 0) {		
 		// Prepare to send sorted CSV
 		printf("~DUMP~ received!\n");
-		//sleep(200);
-		
+		sleep(30);
+		// Still getting a race condition here
+		// Dump runs before we get all the CSVs?
+		// or we're getting an extra START after DUMP?
 		pthread_mutex_lock(&records_mutex);
 		record *ptr = malloc(sizeof(record));
 		record *temp = malloc(sizeof(record));
@@ -201,16 +203,16 @@ void * service(void *args) {
 			printf("loop #%d\n", count);
 			for(i = 0; i < 28; i++){
 				if (i != 27) {
-					printf("about to access token#%d in loop#%d\n", i, count);
+					//printf("about to access token#%d in loop#%d\n", i, count);
 					strcat(send, ptr->line[i]);
 					strcat(send, ",");
 				} else {
-					printf("about to access token#%d in loop#%d\n", i, count);
+					//printf("about to access token#%d in loop#%d\n", i, count);
 					strcat(send, ptr->line[i]);
 					strcat(send, "\n");
 				}
 			}
-			printf("about to write #%d\n", count);
+			//printf("about to write #%d\n", count);
 			if(write(client_socket, send, 500) < 0){
 				perror("write");
 				exit(EXIT_FAILURE);
