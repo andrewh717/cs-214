@@ -3,8 +3,9 @@
 #include"mergesort.h"
 
 // Method to swap records by swapping their line members
-void lineSwap(char **str1, char **str2, int numColumns) {
-	int i;
+void lineSwap(char **str1, char **str2) {
+	int i, numColumns;
+	numColumns = 28;
 	for (i = 0; i < numColumns; i++) { 
 		if (strlen(str1[i]) > strlen(str2[i])) {
 			char *temp = malloc(strlen(str1[i]) * sizeof(char) + 1);
@@ -30,15 +31,15 @@ void mergeRecord(record *arr, int columnIndex, int low, int mid, int high, int t
 	left = malloc(sizeLeft * sizeof(record));
 	right = malloc(sizeRight * sizeof(record));
 	for (i = 0; i < sizeLeft; i++) {
-		left[i].line = malloc(arr[0].numColumns * sizeof(char **));
-		for (k = 0; k < arr[0].numColumns; k++) {
+		left[i].line = malloc(28 * sizeof(char **));
+		for (k = 0; k < 28; k++) {
 			left[i].line[k] = malloc(strlen(arr[low + i].line[k]) * sizeof(char) + 1);
 			strcpy(left[i].line[k], arr[low + i].line[k]);
 		}
 	}
 	for (j = 0; j < sizeRight; j++) {
-		right[j].line = malloc(arr[0].numColumns * sizeof(char **));
-		for (k = 0; k < arr[0].numColumns; k++) {
+		right[j].line = malloc(28 * sizeof(char **));
+		for (k = 0; k < 28; k++) {
 			right[j].line[k] = malloc(strlen(arr[mid + 1 + j].line[k]) * sizeof(char) + 1);
 			strcpy(right[j].line[k], arr[mid + 1 + j].line[k]);
 		}
@@ -49,35 +50,35 @@ void mergeRecord(record *arr, int columnIndex, int low, int mid, int high, int t
 	
     while (i < sizeLeft && j < sizeRight) {
         if (type == 0 && (strcmp(left[i].line[columnIndex], right[j].line[columnIndex]) < 0)) {
-			lineSwap(arr[k].line, left[i++].line, arr[k].numColumns);
+			lineSwap(arr[k].line, left[i++].line);
 			k++;
         } else if ((type == 1 || 2) && ((strcmp(left[i].line[columnIndex], "") == 0) && (strcmp(right[j].line[columnIndex], "") != 0))) {
-			lineSwap(arr[k].line, left[i++].line, arr[k].numColumns);
+			lineSwap(arr[k].line, left[i++].line);
 			k++;
 			// For some reason, the numeric types that are empty strings are sorted in reverse order of how they appear in the original CSV
 		} else if ((type == 1 || 2) && ((strcmp(left[i].line[columnIndex], "") != 0) && (strcmp(right[j].line[columnIndex], "") == 0))) {
-			lineSwap(arr[k].line, right[j++].line, arr[k].numColumns);
+			lineSwap(arr[k].line, right[j++].line);
 			k++;
 		} else if ((type == 1 || 2) && ((strcmp(left[i].line[columnIndex], "") == 0) && (strcmp(right[j].line[columnIndex], "") == 0))) {
-			lineSwap(arr[k].line, left[i++].line, arr[k].numColumns);
+			lineSwap(arr[k].line, left[i++].line);
 			k++;
 		} else if (type == 1 && (atoi(left[i].line[columnIndex]) < atoi(right[j].line[columnIndex]))) {
-			lineSwap(arr[k].line, left[i++].line, arr[k].numColumns);
+			lineSwap(arr[k].line, left[i++].line);
 			k++;
         } else if (type == 2 && (atof(left[i].line[columnIndex]) < atof(right[j].line[columnIndex]))) {
-			lineSwap(arr[k].line, left[i++].line, arr[k].numColumns);
+			lineSwap(arr[k].line, left[i++].line);
 			k++;
         } else {
-        	lineSwap(arr[k].line, right[j++].line, arr[k].numColumns);
+        	lineSwap(arr[k].line, right[j++].line);
         	k++;
         }
     }
     while (i < sizeLeft) {
-        lineSwap(arr[k].line, left[i++].line, arr[k].numColumns);
+        lineSwap(arr[k].line, left[i++].line);
 		k++;
     }
     while (j < sizeRight) {
-        lineSwap(arr[k].line, right[j++].line, arr[k].numColumns);
+        lineSwap(arr[k].line, right[j++].line);
         k++;
     }
 }
@@ -117,7 +118,7 @@ int checkType (char *str) {
 void addQuotes (record *arr, int numRecords) {
 	int i, j;
 	for (i = 0; i < numRecords; i++) {
-		for (j = 0; j < arr[0].numColumns; j++) {
+		for (j = 0; j < 28; j++) {
 			if (strstr(arr[i].line[j], ",") != NULL) {
 				// Allocate enough room
 				char *temp = malloc(strlen(arr[i].line[j]) * sizeof(char) + 1);

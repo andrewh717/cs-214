@@ -25,8 +25,7 @@ tid_type tid_pool[MAX_NUM_THREAD];
 
 
 /********** Helper functions ***********/
-void init_tid_pool()
-{
+void init_tid_pool() {
 	int i;
 	for(i = 0; i < MAX_NUM_THREAD; i++)
 	{
@@ -36,8 +35,7 @@ void init_tid_pool()
 }
 
 /* return the index of available tid in pool */
-int get_tid()
-{
+int get_tid() {
 	int i;
 	for (i = 0; i < MAX_NUM_THREAD; i++)
 	{
@@ -49,9 +47,25 @@ int get_tid()
 	return -1;
 }
 
-void release_tid(int index)
-{
+void release_tid(int index) {
 	tid_pool[index].isFree = 1;
+}
+
+void trim(char *str) {
+	int i;
+	int begin = 0;
+	int end = strlen(str) - 1;
+	while (isspace((unsigned char) str[begin])) {
+		begin++;
+	}
+	while ((end >= begin) && isspace((unsigned char) str[end])) {
+		end--;
+	}
+	// Shift all chars back to the start of the string array
+	for (i = begin; i <= end; i++) {
+		str[i - begin] = str[i];
+	}
+	str[i - begin] = '\0'; // Null terminate string
 }
 
 void processData(char *buffer) {
@@ -60,13 +74,13 @@ void processData(char *buffer) {
 		// malloc record
 		// add to global list?
 		globalHead = malloc(sizeof(record));
-		globalHead.line = malloc(sizeof(char **));
+		globalHead->line = malloc(sizeof(char **));
 		globalHead->next = NULL;
 		globalRear = globalHead;
 		ptr = globalHead;
 	} else {
 		globalRear->next = malloc(sizeof(record));
-		globalRear->next.line = malloc(sizeof(char **));
+		globalRear->next->line = malloc(sizeof(char **));
 		globalRear->next->next = NULL;
 		ptr = globalRear->next;
 	}
@@ -81,11 +95,11 @@ void processData(char *buffer) {
 			end++;
 		}
 		if (currentToken > 0) {
-			ptr.line = realloc(ptr.line, (currentToken + 1) * sizeof(char **));
+			ptr->line = realloc(ptr->line, (currentToken + 1) * sizeof(char **));
 		}
 		trim(token);
-		ptr.line[currentToken] = malloc(strlen(token) * sizeof(char) + 1);
-		strcpy(ptr.line[currentToken], token);
+		ptr->line[currentToken] = malloc(strlen(token) * sizeof(char) + 1);
+		strcpy(ptr->line[currentToken], token);
 		printf("Token received: %s\n", token);
 		currentToken++;
 	}
@@ -107,7 +121,7 @@ void * service(void *args)
 {
 	// this is the socket for our server 
 	// to talk to client
-	int index = (int)args;
+	int index = (intptr_t)args;
 	int client_socket = tid_pool[index].socketfd;
 	// define two buffers, receive and send
 	// char send_buf[256] = "Hello World!";
@@ -128,7 +142,7 @@ void * service(void *args)
 		int receivingCSV = 1;
 		while(receivingCSV == 1) {
 			read(client_socket, recv_buf, 500);
-			if(strcmp(recv_buf, EOF) == 0){
+			if(strcmp(recv_buf, "~END~") == 0){
 				break;
 			}
 			pthread_mutex_lock(&records_mutex);
@@ -137,14 +151,14 @@ void * service(void *args)
 		}
 	} 
 	// DUMP request received
-	else if(strcmp(req_buf, get_req) == 0) {
+	else if(strcmp(req_buf, dump_req) == 0) {
 		// Prepare to send sorted CSV
-		break;
+		exit(EXIT_FAILURE);
 	}
 	// Received CSV, now add it to list of stored CSVs
 	// Sort list of stored CSVs
 
-	/* STEP 6: send data */*
+	/* STEP 6: send data */
 	// use write system call to send data
 	char send_buf[256] = "Hello client! - from server";
 	write(client_socket, send_buf, 256);
@@ -161,12 +175,14 @@ void * service(void *args)
 	pthread_mutex_lock(&numThreads_mutex);
 	num_of_thread--;
 	pthread_mutex_unlock(&numThreads_mutex);
+
+	pthread_exit(0);
+	return NULL;
 }
 
 /////// Part 2: Main Function ///////////////
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
 	// optional: You can add args checking here
 		
 	int server_sock, client_sock;
@@ -233,7 +249,7 @@ int main(int argc, char **argv)
 			int i = get_tid();
 			// replace client socket here
 			tid_pool[i].socketfd = client_sock;
-			pthread_create(&tid_pool[i].tid, NULL, service, (void *)i);
+			pthread_create(&tid_pool[i].tid, NULL, service, (void *) (intptr_t) i);
 			
 			pthread_mutex_lock(&numThreads_mutex);
 			num_of_thread++;

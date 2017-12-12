@@ -4,11 +4,11 @@
 #include<stdlib.h>
 #include<string.h>
 #include<ctype.h>
-#include"sorter.h"
+#include"sorter_server.h"
 
 int checkType (char *str);
 
-void lineSwap(char **str1, char **str2, int numColumns);
+void lineSwap(char **str1, char **str2);
 
 void mergeRecord(record *arr, int columnIndex, int low, int mid, int high, int type);
 
