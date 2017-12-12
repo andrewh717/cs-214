@@ -187,7 +187,7 @@ void * service(void *args) {
 	else if(strcmp(req_buf, dump_req) == 0) {		
 		// Prepare to send sorted CSV
 		printf("~DUMP~ received!\n");
-		sleep(200);
+		//sleep(200);
 		
 		pthread_mutex_lock(&records_mutex);
 		record *ptr = malloc(sizeof(record));
@@ -238,7 +238,7 @@ void * service(void *args) {
 	num_of_thread--;
 	pthread_mutex_unlock(&numThreads_mutex);
 
-	pthread_exit(0);
+	//pthread_exit(0);
 	return NULL;
 }
 
@@ -318,7 +318,7 @@ int main(int argc, char **argv) {
 			num_of_thread++;
 			pthread_mutex_unlock(&numThreads_mutex);
 			
-			pthread_detach(tid_pool[i].tid);
+			pthread_join(tid_pool[i].tid, NULL);
 		}
 
 		/* what if num_of_thread >= MAX_NUM_THREAD? 
