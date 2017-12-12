@@ -1,10 +1,10 @@
 #include "sorter_server.h"
 
 /* Macros (define your macros below) */
-#define MAX_NUM_THREAD 1024
+#define MAX_NUM_THREAD 2000
 
 // Port numbers
-#define PORT 9693
+#define PORT 9694
 
 /********** Global variables/structures ***********/
 
@@ -22,6 +22,9 @@ record *globalHead;
 record *globalRear;
 
 int numRecords = 0;
+
+int numStart = 0;
+pthread_mutex_t numStart_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* Global thread id pool */
 tid_type tid_pool[MAX_NUM_THREAD];
@@ -157,12 +160,18 @@ void * service(void *args) {
 
 	// POST request received
 	if(strcmp(req_buf, post_req) == 0) {
+		pthread_mutex_lock(&numStart_mutex);
+		numStart++;
+		pthread_mutex_unlock(&numStart_mutex);
 		// Prepare to read in CSV contents
 		int receivingCSV = 1;
 		printf("~START~ received!\n");
 		while(receivingCSV == 1) {
 			//printf("in the loop, about to read!\n");
-			read(client_socket, recv_buf, 500);
+			if(read(client_socket, recv_buf, 500) < 0) {
+				perror("read");
+				exit(EXIT_FAILURE);
+			}
 			if(strcmp(recv_buf, "~END~") == 0){
 				memset(recv_buf, 0, 500);
 				break;
@@ -175,9 +184,11 @@ void * service(void *args) {
 		}
 	} 
 	// DUMP request received
-	else if(strcmp(req_buf, dump_req) == 0) {
+	else if(strcmp(req_buf, dump_req) == 0) {		
 		// Prepare to send sorted CSV
 		printf("~DUMP~ received!\n");
+		sleep(200);
+		
 		pthread_mutex_lock(&records_mutex);
 		record *ptr = malloc(sizeof(record));
 		record *temp = malloc(sizeof(record));
@@ -200,13 +211,17 @@ void * service(void *args) {
 				}
 			}
 			printf("about to write #%d\n", count);
-			write(client_socket, send, 500);
+			if(write(client_socket, send, 500) < 0){
+				perror("write");
+				exit(EXIT_FAILURE);
+			}
 			memset(send, 0, 500);
 			printf("successfully write #%d\n", count);
 			count++;
 			temp = ptr;
 			ptr = ptr->next;
 			freeRecord(temp);
+			//freeRecord(globalRear);
 			//printf("loop completed #%d\n", count);
 		}
 		pthread_mutex_unlock(&records_mutex);
@@ -295,7 +310,9 @@ int main(int argc, char **argv) {
 			// replace client socket here
 			tid_pool[i].socketfd = client_sock;
 			printf("about to create thread\n");
+			pthread_mutex_lock(&tid_pool_mutex);
 			pthread_create(&tid_pool[i].tid, NULL, service, (void *) (intptr_t) i);
+			pthread_mutex_unlock(&tid_pool_mutex);
 			printf("done creating thread\n");
 			pthread_mutex_lock(&numThreads_mutex);
 			num_of_thread++;
