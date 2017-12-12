@@ -128,7 +128,7 @@ record * freeRecord(record *ptr) {
 		free(ptr->line[i]);
 	}
 	free(ptr->line);
-	//free(freeRecords(ptr->next));
+	//free(freeRecord(ptr->next));
 	return NULL;
 }
 /********** Helper functions end *********/
@@ -187,10 +187,9 @@ void * service(void *args) {
 	else if(strcmp(req_buf, dump_req) == 0) {		
 		// Prepare to send sorted CSV
 		printf("~DUMP~ received!\n");
-		sleep(30);
-		// Still getting a race condition here
-		// Dump runs before we get all the CSVs?
-		// or we're getting an extra START after DUMP?
+		//sleep(10);
+		
+		//  NEED TO GET COLUMNINDEX TO SORT ON
 		pthread_mutex_lock(&records_mutex);
 		record *ptr = malloc(sizeof(record));
 		record *temp = malloc(sizeof(record));
@@ -200,7 +199,7 @@ void * service(void *args) {
 		int i;
 		char send[500];
 		while(ptr != NULL){
-			printf("loop #%d\n", count);
+			//printf("loop #%d\n", count);
 			for(i = 0; i < 28; i++){
 				if (i != 27) {
 					//printf("about to access token#%d in loop#%d\n", i, count);
@@ -218,15 +217,21 @@ void * service(void *args) {
 				exit(EXIT_FAILURE);
 			}
 			memset(send, 0, 500);
-			printf("successfully write #%d\n", count);
+			//printf("successfully write #%d\n", count);
 			count++;
 			temp = ptr;
 			ptr = ptr->next;
-			freeRecord(temp);
+			if (temp != globalHead) {
+				freeRecord(temp);
+			}
 			//freeRecord(globalRear);
 			//printf("loop completed #%d\n", count);
 		}
+		globalHead = NULL;
+		globalRear = NULL;
+		
 		pthread_mutex_unlock(&records_mutex);
+		printf("Dump completed successfully.\n");
 	} else {
 		printf("invalid request type\n");
 	}
