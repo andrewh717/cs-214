@@ -165,6 +165,7 @@ void * service(void *args) {
 		pthread_mutex_unlock(&numStart_mutex);
 		// Prepare to read in CSV contents
 		int receivingCSV = 1;
+		int counter = 0;
 		printf("~START~ received!\n");
 		while(receivingCSV == 1) {
 			//printf("in the loop, about to read!\n");
@@ -172,7 +173,9 @@ void * service(void *args) {
 				perror("read");
 				exit(EXIT_FAILURE);
 			}
+			//printf("Counter: %d --- Received: %s\n", counter, recv_buf);
 			if(strcmp(recv_buf, "~END~") == 0){
+				printf("%s\n", recv_buf);
 				memset(recv_buf, 0, 500);
 				break;
 			}
@@ -181,16 +184,17 @@ void * service(void *args) {
 			memset(recv_buf, 0, 500);
 			//printf("I have processed data!\n");
 			pthread_mutex_unlock(&records_mutex);
+			counter++;
 		}
 	} 
 	// DUMP request received
 	else if(strcmp(req_buf, dump_req) == 0) {		
 		// Prepare to send sorted CSV
-		printf("~DUMP~ received!\n");
-		//sleep(10);
 		
 		//  NEED TO GET COLUMNINDEX TO SORT ON
 		pthread_mutex_lock(&records_mutex);
+		printf("~DUMPX~ received!\n");
+		//sleep(10);
 		record *ptr = malloc(sizeof(record));
 		record *temp = malloc(sizeof(record));
 		ptr = globalHead;
@@ -236,10 +240,6 @@ void * service(void *args) {
 		printf("invalid request type\n");
 	}
 	close(client_socket);
-
-	pthread_mutex_lock(&tid_pool_mutex);
-	release_tid(index);
-	pthread_mutex_unlock(&tid_pool_mutex);
 
 	pthread_mutex_lock(&numThreads_mutex);
 	num_of_thread--;
@@ -312,33 +312,36 @@ int main(int argc, char **argv) {
 		
 		// the last argument is tricky not a good way to do, just demo
 		// replace client socket with your client socket variable name
-		if (num_of_thread < MAX_NUM_THREAD) {
+		//if (num_of_thread < MAX_NUM_THREAD) {
 			int i = get_tid();
 			// replace client socket here
 			tid_pool[i].socketfd = client_sock;
-			printf("about to create thread\n");
+			//printf("about to create thread\n");
 			pthread_mutex_lock(&tid_pool_mutex);
 			pthread_create(&tid_pool[i].tid, NULL, service, (void *) (intptr_t) i);
 			pthread_mutex_unlock(&tid_pool_mutex);
-			printf("done creating thread\n");
+			//printf("done creating thread\n");
 			pthread_mutex_lock(&numThreads_mutex);
 			num_of_thread++;
 			pthread_mutex_unlock(&numThreads_mutex);
 			
+			pthread_mutex_lock(&tid_pool_mutex);
 			pthread_join(tid_pool[i].tid, NULL);
-		}
+			release_tid(i);
+			pthread_mutex_unlock(&tid_pool_mutex);
+		//}
 
 		/* what if num_of_thread >= MAX_NUM_THREAD? 
 		 * You need to think about a way to solve this
 		 * problem
 		 * CV/semaphore ... or other better solution
 		 * */
-		else {
+		/*else {
 			// just dirty code for demo ;)
 			while (num_of_thread >= MAX_NUM_THREAD) {
 				sleep(1);
 			}
-		}
+		}*/
 		/*record *ptr = malloc(sizeof(record));
 		ptr = globalHead;
 		while(ptr != NULL){
