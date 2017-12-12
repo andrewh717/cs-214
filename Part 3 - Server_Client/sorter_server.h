@@ -18,7 +18,6 @@
 
 typedef struct record {
 	char **line;
-	int numColumns;
 	struct record *next;
 } record;
 
