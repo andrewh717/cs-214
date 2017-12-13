@@ -4,7 +4,7 @@
 #define MAX_NUM_THREAD 2000
 
 // Port numbers
-#define PORT 9696
+#define PORT 9697
 
 /********** Global variables/structures ***********/
 
@@ -132,7 +132,7 @@ record * freeRecord(record *ptr) {
 		free(ptr->line[i]);
 	}
 	free(ptr->line);
-	//free(freeRecord(ptr->next));
+	free(freeRecord(ptr->next));
 	return NULL;
 }
 /********** Helper functions end *********/
@@ -152,12 +152,12 @@ void * service(void *args) {
 	// define two buffers, receive and send
 	// char send_buf[256] = "Hello World!";
 	char recv_buf[500];
-	char req_buf[8];
-	const char post_req[8] = "~START~";
-	const char dump_req[8] = "~DUMPX~";
+	char req_buf[9];
+	const char post_req[9] = "~STARTX~";
+	const char dump_req[9] = "~DUMPXY~";
 
 	// Perform initial read to determine request type
-	if(read(client_socket, req_buf, 8) < 0){
+	if(read(client_socket, req_buf, 9) < 0){
 		perror("read");
 		exit(EXIT_FAILURE);
 	}
@@ -182,7 +182,7 @@ void * service(void *args) {
 		//int receivingCSV = 1;
 		int counter = 0;
 		printf("~START~ received!\n");
-		sleep(1);
+		sleep(2);
 		//while(receivingCSV == 1) {
 		while (read(client_socket, recv_buf, 500) > 0) {
 			//printf("in the loop, about to read!\n");
@@ -243,6 +243,7 @@ void * service(void *args) {
 		count = 0;
 		int i;
 		char send[500];
+		printf("i am right before the write loop\n");
 		while(ptr != NULL){
 			//printf("loop #%d\n", count);
 			for(i = 0; i < 28; i++){
@@ -256,6 +257,7 @@ void * service(void *args) {
 					strcat(send, "\n");
 				}
 			}
+			printf("i am right after the for loop\n");
 			//printf("about to write #%d\n", count);
 			if(write(client_socket, send, 500) < 0){
 				perror("write");
@@ -264,14 +266,29 @@ void * service(void *args) {
 			memset(send, 0, 500);
 			//printf("successfully write #%d\n", count);
 			count++;
-			temp = ptr;
-			ptr = ptr->next;
-			if (temp != globalHead) {
-				freeRecord(temp);
+			printf("i am before ptr = ptr->next\n");
+			//temp = ptr;
+			if (ptr->next == NULL) {
+				break;
 			}
+			ptr = ptr->next;
+			printf("ptr has been incremented\n");
+			//if (temp != globalHead) {
+			//	freeRecord(temp);
+			//}
+			//printf("i am after free stuff\n");
 			//freeRecord(globalRear);
 			//printf("loop completed #%d\n", count);
 		}
+		printf("i have exited the write while loop\n");
+		
+		temp = globalHead;
+		freeRecord(temp);
+		
+		
+		globalHead = malloc(sizeof(record));
+		globalRear = malloc(sizeof(record));
+		
 		globalHead = NULL;
 		globalRear = NULL;
 		
@@ -280,14 +297,17 @@ void * service(void *args) {
 	} else {
 		printf("invalid request type\n");
 	}
-	memset(req_buf, 0, 8);
+	
 	close(client_socket);
 
 	pthread_mutex_lock(&numThreads_mutex);
 	num_of_thread--;
 	pthread_mutex_unlock(&numThreads_mutex);
-
-	pthread_exit(0);
+	
+	if (strcmp(req_buf, dump_req) == 0) {
+		pthread_exit(0);		
+	}
+	memset(req_buf, 0, 8);
 	return NULL;
 }
 
