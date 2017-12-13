@@ -6,14 +6,7 @@
 #include<ctype.h>
 #include"sorter_server.h"
 
-int checkType (char *str);
-
-void lineSwap(char **str1, char **str2);
-
-void mergeRecord(record *arr, int columnIndex, int low, int mid, int high, int type);
-
-void mergeSortRecord(record *arr, int columnIndex, int low, int high, int type);
-
-void mergeSort(record *arr, int columnIndex, int numRecords);
-
-void addQuotes(record *arr, int numRecords);
+//Prototypes for the functions we're using in mergesort.c - DOCUMENTATION IS IN THAT FILE
+void merge(record ** front, int sortingBy);
+record * sorted(record * first, record * second, int sortingBy);
+void split(record * source, record ** first, record ** second);

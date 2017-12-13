@@ -1,142 +1,168 @@
-// Authors: Andrew Hernandez & Michael Belmont
 // CS214: Systems Programming Fall 2017
-#include"mergesort.h"
+#include"sorter_server.h"
 
-// Method to swap records by swapping their line members
-void lineSwap(char **str1, char **str2) {
-	int i, numColumns;
-	numColumns = 28;
-	for (i = 0; i < numColumns; i++) { 
-		if (strlen(str1[i]) > strlen(str2[i])) {
-			char *temp = malloc(strlen(str1[i]) * sizeof(char) + 1);
-			strcpy(temp, str1[i]);
-			strcpy(str1[i], str2[i]);
-			str2[i] = temp;
-		} else {
-			char *temp = malloc(strlen(str2[i]) * sizeof(char) + 1);
-			strcpy(temp, str2[i]);
-			strcpy(str2[i], str1[i]);
-			str1[i] = malloc(strlen(temp) * sizeof(char) + 1);
-			strcpy(str1[i], temp);
-		}
+/*The main method for the merge function. This goes through the 4 steps of mergesort and uses helper functions to complete its purpose*/
+//We pass a pointer to the poitner of the linked list, which we can de-reference to change the actual list, and an int representing the category that we are sorting by
+void merge(record ** frontAddress, int sortingBy)
+{
+	record * front = *frontAddress;
+	record * first = NULL;
+	record * second = NULL;
+
+	//List does not need to be sorted if 1 or 0 element(s)
+	if((front == NULL) || (front->next == NULL))
+	{
+		return;
 	}
+
+	//Need a method that splits the list of data points into halves
+	split(front, &first, &second);
+
+	//Recursively sort each half-list
+	merge(&first, sortingBy);
+	merge(&second, sortingBy);
+
+	//Lastly merge them together
+	*frontAddress = sorted(first, second, sortingBy);
+
+	return;
 }
 
-// Mergesort for array of records
-void mergeRecord(record *arr, int columnIndex, int low, int mid, int high, int type) {
-	int i, j, k;
-	int sizeLeft = mid - low + 1;
-	int sizeRight = high - mid;
-	record *left, *right;
-	left = malloc(sizeLeft * sizeof(record));
-	right = malloc(sizeRight * sizeof(record));
-	for (i = 0; i < sizeLeft; i++) {
-		left[i].line = malloc(28 * sizeof(char **));
-		for (k = 0; k < 28; k++) {
-			left[i].line[k] = malloc(strlen(arr[low + i].line[k]) * sizeof(char) + 1);
-			strcpy(left[i].line[k], arr[low + i].line[k]);
-		}
-	}
-	for (j = 0; j < sizeRight; j++) {
-		right[j].line = malloc(28 * sizeof(char **));
-		for (k = 0; k < 28; k++) {
-			right[j].line[k] = malloc(strlen(arr[mid + 1 + j].line[k]) * sizeof(char) + 1);
-			strcpy(right[j].line[k], arr[mid + 1 + j].line[k]);
-		}
-	}
-	i = 0; // Initial index of left array
-	j = 0; // Initial index of right array
-	k = low; // Initial index of merged array
+record * sorted(record * first, record * second, int sortingBy)
+{
+	//The pointer to the front of our sorted list once we are done merging the two given list-halves	
+	record * result = NULL;
 	
-    while (i < sizeLeft && j < sizeRight) {
-        if (type == 0 && (strcmp(left[i].line[columnIndex], right[j].line[columnIndex]) < 0)) {
-			lineSwap(arr[k].line, left[i++].line);
-			k++;
-        } else if ((type == 1 || 2) && ((strcmp(left[i].line[columnIndex], "") == 0) && (strcmp(right[j].line[columnIndex], "") != 0))) {
-			lineSwap(arr[k].line, left[i++].line);
-			k++;
-			// For some reason, the numeric types that are empty strings are sorted in reverse order of how they appear in the original CSV
-		} else if ((type == 1 || 2) && ((strcmp(left[i].line[columnIndex], "") != 0) && (strcmp(right[j].line[columnIndex], "") == 0))) {
-			lineSwap(arr[k].line, right[j++].line);
-			k++;
-		} else if ((type == 1 || 2) && ((strcmp(left[i].line[columnIndex], "") == 0) && (strcmp(right[j].line[columnIndex], "") == 0))) {
-			lineSwap(arr[k].line, left[i++].line);
-			k++;
-		} else if (type == 1 && (atoi(left[i].line[columnIndex]) < atoi(right[j].line[columnIndex]))) {
-			lineSwap(arr[k].line, left[i++].line);
-			k++;
-        } else if (type == 2 && (atof(left[i].line[columnIndex]) < atof(right[j].line[columnIndex]))) {
-			lineSwap(arr[k].line, left[i++].line);
-			k++;
-        } else {
-        	lineSwap(arr[k].line, right[j++].line);
-        	k++;
-        }
-    }
-    while (i < sizeLeft) {
-        lineSwap(arr[k].line, left[i++].line);
-		k++;
-    }
-    while (j < sizeRight) {
-        lineSwap(arr[k].line, right[j++].line);
-        k++;
-    }
-}
-
-void mergeSortRecord(record *arr, int columnIndex, int low, int high, int type) {
-    if (low < high) {
-    	int mid = low + (high - low) / 2;
-    	mergeSortRecord(arr, columnIndex, low, mid, type);
-    	mergeSortRecord(arr, columnIndex, mid + 1, high, type);
-    	mergeRecord(arr, columnIndex, low, mid, high, type);
+	/*Checking to see if one of the lists is empty*/
+	if(first == NULL)
+	{
+		return second;
 	}
-}
+	else if(second == NULL)
+	{
+		return first;
+	}
+	
+	//If isNum is 0, then we are sorting by string. If isNum is 1, we are sorting by numbers
+	int isNum = 0;
+	
+	//We are wasting a tiny amount of space to create a variable for the case of longs/doubles or strings
+	char * fStrVal = "";
+	char * sStrVal = "";
+	double fNumVal = 0;
+	double sNumVal = 0;
 
-int checkType (char *str) {
-	int i, isInt;
-	isInt = 0;
-	for (i = 0; i < strlen(str); i++) {
-		if (isdigit(str[i]) != 0) {
-			continue;
-		} else {
-			isInt = 1;
+	switch (sortingBy) {
+		case 0: case 1: case 6: case 9: case 10: case 11: case 14: case 16: case 17: case 19: case 20: case 21:
+			fStrVal = first->line[sortingBy];
+			sStrVal = second->line[sortingBy];
+			//printf("fStrVal: %s ---- sStrVal: %s\n", fStrVal, sStrVal);
 			break;
+		case 2: case 3: case 4: case 5: case 7: case 8: case 12: case 13: case 15: case 18: case 22: case 23: case 24: case 25: case 26: case 27:
+			isNum = 1;
+			fNumVal = atof(first->line[sortingBy]);
+			sNumVal = atof(second->line[sortingBy]);
+			//printf("fNumVal: %f ---- sNumVal: %f\n", fNumVal, sNumVal);
+			break;
+		default:
+			printf("Fatal Error: Something went wrong with selecting the category to sort by.\n");
+			exit(EXIT_FAILURE);
+	}
+	
+	//printf("%s and %s\n", fStrVal, sStrVal);
+	
+	/*We're going to take the lexicographically first value and store it as the current node. We are going to call this method recursively on both lists minus what we just added so we can keep going in order until one list is null*/
+	
+	//STILL HAVE TO ACCOUNT FOR INSTANCES OF NULL
+	if(isNum == 0)
+	{
+		if (strcmp(fStrVal, "-1") == 0) //The first value is a NULL value
+		{
+			result = first;
+			result->next = sorted(first->next, second, sortingBy);
 		}
-	}
-	// A string is a floating point number if the first and last characters are digits, 
-	// and the string contains a period (aka decimal point)
-	char *temp = strstr(str, ".");
-	if ((isdigit(str[0]) != 0) && (isdigit(str[strlen(str)-1]) != 0) && (temp != NULL)) {
-		return 2; // Treat the string as a double
-	}
-	if (isInt == 0) {
-		return 1; // Treat the string as an int
-	}
-	return 0; // If it's not an int or a double, treat it as a string
-}
-
-void addQuotes (record *arr, int numRecords) {
-	int i, j;
-	for (i = 0; i < numRecords; i++) {
-		for (j = 0; j < 28; j++) {
-			if (strstr(arr[i].line[j], ",") != NULL) {
-				// Allocate enough room
-				char *temp = malloc(strlen(arr[i].line[j]) * sizeof(char) + 1);
-				strcpy(temp, arr[i].line[j]); 
-				arr[i].line[j] = realloc(arr[i].line[j], strlen(arr[i].line[j]) * sizeof(char) + 3);
-				snprintf(arr[i].line[j], strlen(arr[i].line[j]) + 3, "\"%s\"", temp);	
+		else if (strcmp(sStrVal, "-1") == 0) //The second value is a NUll value
+		{
+			result = second;
+			result->next = sorted(first, second->next, sortingBy);
+		}
+		else //Neither of the values are NULL
+		{
+			if(strcmp(fStrVal, sStrVal) <= 0)
+			{
+				result = first;
+				result->next = sorted(first->next, second, sortingBy);
+			}
+			else
+			{
+				result = second;
+				result->next = sorted(first, second->next, sortingBy);
 			}
 		}
 	}
+	else if(isNum == 1)
+	{
+		if (fNumVal == -1) //The first value is NULL
+		{
+			result = first;
+			result->next = sorted(first->next, second, sortingBy);
+		}
+		else if (sNumVal == -1) //The second value is NULL
+		{
+			result = second;
+			result->next = sorted(first, second->next, sortingBy);
+		}
+		else //Neither value is NULL
+		{
+			if(fNumVal <= sNumVal)
+			{
+				result = first;
+				result->next = sorted(first->next, second, sortingBy);
+			}
+			else
+			{
+				result = second;
+				result->next = sorted(first, second->next, sortingBy);
+			}
+		}
+	}
+	//Returning the merged and sorted result
+	return result;
 }
 
-void mergeSort(record *arr, int columnIndex, int numRecords) {
-	int type;
-	type = checkType(arr[1].line[columnIndex]);
-	// If type == 0, the token is a string
-	// If type == 1, the token is an int
-	// If type == 2, the token is a double
-	mergeSortRecord(arr, columnIndex, 1, numRecords, type);
-	addQuotes(arr, numRecords);
+/*This function takes a linked list and returns pointers to the two halves of the source list. If there is an odd amount of items in the list, the extra node goes into the front half*/
+
+//WE THINIK THIS SHOULD SAVE ANY UPDATES TO FIRST AND SECOND TO THE ORIGINAL ADDRESS BUT IF THIS DOESN'T WORK PROPERLY, WE KNOW WHERE TO LOOK
+void split(record * front, record ** first, record ** second)
+{
+	//Using a fast and slow iterating pair of pointers to find the midpoint of the linked list
+	record * fast;
+	record * slow;
+	//If there are only one or no items in the list so far to sort
+	if(front == NULL || front->next == NULL)
+	{
+		*first = front;
+		*second = NULL;
+	}
+	else //If there are more than just one or no items in the list
+	{
+		slow = front;
+		fast = front->next;
+		//Iterating the fast pointer by two nodes each cycle while only iterating slow by one node
+		//We keep iterating until fast reaches the end, at which point, slow should be at the halfway point
+		while(fast != NULL)
+		{
+			fast = fast->next;
+			if(fast != NULL)
+			{
+				slow = slow->next;
+				fast = fast->next;
+			}
+		}
+		*first = front;
+		*second = slow->next;
+		slow->next = NULL;
+	}
 	return;
 }
+

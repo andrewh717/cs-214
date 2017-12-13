@@ -149,8 +149,7 @@ void * service(void *args) {
 	//printf("i have entered the service method\n");
 	int index = (intptr_t)args;
 	int client_socket = tid_pool[index].socketfd;
-	// define two buffers, receive and send
-	// char send_buf[256] = "Hello World!";
+
 	char recv_buf[500];
 	char req_buf[9];
 	const char post_req[9] = "~STARTX~";
@@ -168,38 +167,42 @@ void * service(void *args) {
 		if(startHead == NULL) {
 			startHead = malloc(sizeof(tid_node));
 			startHead->tid = pthread_self();
-			printf("TID saved: %u\n", (unsigned int)startHead->tid);
+			//printf("TID saved: %u\n", (unsigned int)startHead->tid);
 			startHead->next = NULL;
 			startRear = startHead;
 		} else {
 			startRear->next = malloc(sizeof(tid_node));
 			startRear->tid = pthread_self();
-			printf("TID saved: %u\n", (unsigned int)startRear->tid);
+			//printf("TID saved: %u\n", (unsigned int)startRear->tid);
 			startRear = startRear->next;
 		}
 		pthread_mutex_unlock(&start_mutex);
 		// Prepare to read in CSV contents
 		//int receivingCSV = 1;
 		int counter = 0;
-		printf("~START~ received!\n");
+		
+		//printf("~START~ received!\n");
 		sleep(2);
 		//while(receivingCSV == 1) {
 		while (read(client_socket, recv_buf, 500) > 0) {
-			//printf("in the loop, about to read!\n");
-			///if(read(client_socket, recv_buf, 500) < 0) {
-				//perror("read");
-				//exit(EXIT_FAILURE);
-			//}
-			//printf("Counter: %d -- Received: %s\n", counter, recv_buf);
+			//printf("Counter: %d\n", counter);
+			pthread_mutex_lock(&records_mutex);
+			record *checkGlobalHead = malloc(sizeof(record));
+			checkGlobalHead = globalHead;
+			pthread_mutex_unlock(&records_mutex);
+			if (counter == 0 && checkGlobalHead != NULL) {
+				counter++;
+				continue;
+			}
+			
 			if(strcmp(recv_buf, "~END~") == 0){
-				printf("%s\n", recv_buf);
+				//printf("%s\n", recv_buf);
 				memset(recv_buf, 0, 500);
 				break;
 			}
 			pthread_mutex_lock(&records_mutex);
 			processData(recv_buf);
 			memset(recv_buf, 0, 500);
-			//printf("I have processed data!\n");
 			pthread_mutex_unlock(&records_mutex);
 			counter++;
 		}
@@ -207,22 +210,30 @@ void * service(void *args) {
 	// DUMP request received
 	else if(strcmp(req_buf, dump_req) == 0) {		
 		// Prepare to send sorted CSV
-		printf("~DUMPX~ received!\n");
+		//printf("~DUMPX~ received!\n");
+		char columnIndex_buf[3];
+		int columnIndex;
+		if(read(client_socket, columnIndex_buf, 3) < 0){
+			perror("read");
+			exit(EXIT_FAILURE);
+		}
+		columnIndex = atoi(columnIndex_buf);
 		
 		pthread_mutex_lock(&start_mutex);
 		tid_node *startPtr = malloc(sizeof(tid_node));
 		startPtr = startHead;
 		while (startPtr != NULL && startPtr->tid != 0) {
-			printf("About to join TID: %u\n",(unsigned int)startPtr->tid);
+			//printf("About to join TID: %u\n",(unsigned int)startPtr->tid);
 			pthread_join(startPtr->tid, NULL);
 			startPtr = startPtr->next;
-			printf("On to the next one!\n");
+			//printf("On to the next one!\n");
 		}
+		
 		startHead->tid = 0;
 		startRear = startHead;
 		startPtr = startHead->next;
 		tid_node *tempStartPtr;
-		printf("i am before freeing startlist\n");
+		
 		while (startPtr != NULL) {
 			tempStartPtr = startPtr;
 			startPtr = startPtr->next;
@@ -231,21 +242,21 @@ void * service(void *args) {
 		startHead = NULL;
 		startRear = NULL;
 		pthread_mutex_unlock(&start_mutex);
-		printf("got past freeing startlist\n");
-		//  NEED TO GET COLUMNINDEX TO SORT ON
+		
 		pthread_mutex_lock(&records_mutex);
 
 		//sleep(30);
 		record *ptr = malloc(sizeof(record));
 		record *temp = malloc(sizeof(record));
 		ptr = globalHead;
+		//printf("%s\n", ptr->line[columnIndex]);
+		merge(&ptr->next, columnIndex);
+		
 		int count;
 		count = 0;
 		int i;
 		char send[500];
-		printf("i am right before the write loop\n");
 		while(ptr != NULL){
-			//printf("loop #%d\n", count);
 			for(i = 0; i < 28; i++){
 				if (i != 27) {
 					//printf("about to access token#%d in loop#%d\n", i, count);
@@ -257,8 +268,6 @@ void * service(void *args) {
 					strcat(send, "\n");
 				}
 			}
-			printf("i am right after the for loop\n");
-			//printf("about to write #%d\n", count);
 			if(write(client_socket, send, 500) < 0){
 				perror("write");
 				exit(EXIT_FAILURE);
@@ -266,34 +275,20 @@ void * service(void *args) {
 			memset(send, 0, 500);
 			//printf("successfully write #%d\n", count);
 			count++;
-			printf("i am before ptr = ptr->next\n");
-			//temp = ptr;
 			if (ptr->next == NULL) {
 				break;
 			}
 			ptr = ptr->next;
-			printf("ptr has been incremented\n");
-			//if (temp != globalHead) {
-			//	freeRecord(temp);
-			//}
-			//printf("i am after free stuff\n");
-			//freeRecord(globalRear);
-			//printf("loop completed #%d\n", count);
 		}
-		printf("i have exited the write while loop\n");
-		
-		temp = globalHead;
+		temp = globalHead->next;
 		freeRecord(temp);
-		
-		
-		globalHead = malloc(sizeof(record));
-		globalRear = malloc(sizeof(record));
-		
+	
 		globalHead = NULL;
 		globalRear = NULL;
 		
 		pthread_mutex_unlock(&records_mutex);
-		printf("Dump completed successfully.\n");
+		printf("\nDump completed successfully.\n");
+		printf("Column Index sorted: %d\n", columnIndex);
 	} else {
 		printf("invalid request type\n");
 	}
@@ -307,7 +302,7 @@ void * service(void *args) {
 	if (strcmp(req_buf, dump_req) == 0) {
 		pthread_exit(0);		
 	}
-	memset(req_buf, 0, 8);
+	memset(req_buf, 0, 9);
 	return NULL;
 }
 
@@ -352,11 +347,10 @@ int main(int argc, char **argv) {
 
 	client_length = sizeof(client_address);
 	
-	printf("Waiting for connections...\n");
+	printf("Received connections from: \n");
 
 	init_tid_pool();
-	//FILE *recordFile;
-	//recordFile = fopen("all-records.csv", "w");
+	
 	// Wait for connects using infinite loop
 	while (status) {
 		/* STEP 4: accept connection request */
@@ -365,6 +359,7 @@ int main(int argc, char **argv) {
 		// you can setup the second and third arguments other 
 		// than NULL
 		client_sock = accept(server_sock, (struct sockaddr *) &client_address, &client_length);
+		
 		// check if accept() is successful or not
 		if (client_sock < 0) {
 			perror("accept");
@@ -372,54 +367,28 @@ int main(int argc, char **argv) {
 			exit(EXIT_FAILURE);
 		}
 
-		// replace client socket below with your client socket variable name
-		printf("[+] Connect to client %d\n", client_sock); 
+		// Get connection's IP address and print it
+		struct sockaddr_in* ipV4Addr = (struct sockaddr_in*)&client_address;
+		struct in_addr ipAddr = ipV4Addr->sin_addr;
+		char ipStr[INET_ADDRSTRLEN];
+		inet_ntop(AF_INET, &ipAddr, ipStr, INET_ADDRSTRLEN);
+		printf(" %s,", ipStr); 
 		
-		// the last argument is tricky not a good way to do, just demo
-		// replace client socket with your client socket variable name
-		//if (num_of_thread < MAX_NUM_THREAD) {
-			int i = get_tid();
-			// replace client socket here
-			tid_pool[i].socketfd = client_sock;
-			//printf("about to create thread\n");
-			pthread_mutex_lock(&tid_pool_mutex);
-			pthread_create(&tid_pool[i].tid, NULL, service, (void *) (intptr_t) i);
-			pthread_mutex_unlock(&tid_pool_mutex);
-			printf("TID used in create: %u\n", (unsigned int) tid_pool[i].tid);
-			pthread_mutex_lock(&numThreads_mutex);
-			num_of_thread++;
-			pthread_mutex_unlock(&numThreads_mutex);
-			
-			pthread_mutex_lock(&tid_pool_mutex);
-			//pthread_join(tid_pool[i].tid, NULL);
-			release_tid(i);
-			pthread_mutex_unlock(&tid_pool_mutex);
-		//}
-
-		/* what if num_of_thread >= MAX_NUM_THREAD? 
-		 * You need to think about a way to solve this
-		 * problem
-		 * CV/semaphore ... or other better solution
-		 * */
-		/*else {
-			// just dirty code for demo ;)
-			while (num_of_thread >= MAX_NUM_THREAD) {
-				sleep(1);
-			}
-		}*/
-		/*record *ptr = malloc(sizeof(record));
-		ptr = globalHead;
-		while(ptr != NULL){
-			int i;
-			for(i = 0; i < 28; i++){
-				if (i != 27) {
-					fprintf(recordFile, "%s,", ptr->line[i]);
-				} else {
-					fprintf(recordFile, "%s\n", ptr->line[i]);
-				}
-			}
-			ptr = ptr->next;
-		}*/
+		int i = get_tid();
+		
+		tid_pool[i].socketfd = client_sock;
+		
+		pthread_mutex_lock(&tid_pool_mutex);
+		pthread_create(&tid_pool[i].tid, NULL, service, (void *) (intptr_t) i);
+		pthread_mutex_unlock(&tid_pool_mutex);
+		//printf("TID used in create: %u\n", (unsigned int) tid_pool[i].tid);
+		pthread_mutex_lock(&numThreads_mutex);
+		num_of_thread++;
+		pthread_mutex_unlock(&numThreads_mutex);
+		
+		pthread_mutex_lock(&tid_pool_mutex);
+		release_tid(i);
+		pthread_mutex_unlock(&tid_pool_mutex);
 	}
 	
 	/* clean up */

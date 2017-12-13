@@ -15,8 +15,9 @@
 #include<stdint.h>
 
 /* Socket Stuff */
-#include <sys/socket.h>
-#include <netinet/in.h>
+#include<sys/socket.h>
+#include<netinet/in.h>
+#include <arpa/inet.h>
 
 typedef struct record {
 	char **line;
@@ -55,5 +56,10 @@ int getColumnIndex(record *arr, int numColumns, char *columnName);
 int get_tid();
 
 record * freeRecord(record *ptr);
+
+//Prototypes for the functions we're using in mergesort.c - DOCUMENTATION IS IN THAT FILE
+void merge(record ** front, int sortingBy);
+record * sorted(record * first, record * second, int sortingBy);
+void split(record * source, record ** first, record ** second);
 
 #endif // SORTER_SERVER_H_
