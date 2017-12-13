@@ -4,7 +4,7 @@
 #define MAX_NUM_THREAD 2000
 
 // Port numbers
-#define PORT 9694
+#define PORT 9696
 
 /********** Global variables/structures ***********/
 
@@ -28,6 +28,10 @@ pthread_mutex_t numStart_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* Global thread id pool */
 tid_type tid_pool[MAX_NUM_THREAD];
+
+tid_node *startHead;
+tid_node *startRear;
+pthread_mutex_t start_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 /********** Helper functions ***********/
@@ -160,20 +164,33 @@ void * service(void *args) {
 
 	// POST request received
 	if(strcmp(req_buf, post_req) == 0) {
-		pthread_mutex_lock(&numStart_mutex);
-		numStart++;
-		pthread_mutex_unlock(&numStart_mutex);
+		pthread_mutex_lock(&start_mutex);
+		if(startHead == NULL) {
+			startHead = malloc(sizeof(tid_node));
+			startHead->tid = pthread_self();
+			printf("TID saved: %u\n", (unsigned int)startHead->tid);
+			startHead->next = NULL;
+			startRear = startHead;
+		} else {
+			startRear->next = malloc(sizeof(tid_node));
+			startRear->tid = pthread_self();
+			printf("TID saved: %u\n", (unsigned int)startRear->tid);
+			startRear = startRear->next;
+		}
+		pthread_mutex_unlock(&start_mutex);
 		// Prepare to read in CSV contents
-		int receivingCSV = 1;
+		//int receivingCSV = 1;
 		int counter = 0;
 		printf("~START~ received!\n");
-		while(receivingCSV == 1) {
+		sleep(1);
+		//while(receivingCSV == 1) {
+		while (read(client_socket, recv_buf, 500) > 0) {
 			//printf("in the loop, about to read!\n");
-			if(read(client_socket, recv_buf, 500) < 0) {
-				perror("read");
-				exit(EXIT_FAILURE);
-			}
-			//printf("Counter: %d --- Received: %s\n", counter, recv_buf);
+			///if(read(client_socket, recv_buf, 500) < 0) {
+				//perror("read");
+				//exit(EXIT_FAILURE);
+			//}
+			//printf("Counter: %d -- Received: %s\n", counter, recv_buf);
 			if(strcmp(recv_buf, "~END~") == 0){
 				printf("%s\n", recv_buf);
 				memset(recv_buf, 0, 500);
@@ -190,11 +207,35 @@ void * service(void *args) {
 	// DUMP request received
 	else if(strcmp(req_buf, dump_req) == 0) {		
 		// Prepare to send sorted CSV
+		printf("~DUMPX~ received!\n");
 		
+		pthread_mutex_lock(&start_mutex);
+		tid_node *startPtr = malloc(sizeof(tid_node));
+		startPtr = startHead;
+		while (startPtr != NULL && startPtr->tid != 0) {
+			printf("About to join TID: %u\n",(unsigned int)startPtr->tid);
+			pthread_join(startPtr->tid, NULL);
+			startPtr = startPtr->next;
+			printf("On to the next one!\n");
+		}
+		startHead->tid = 0;
+		startRear = startHead;
+		startPtr = startHead->next;
+		tid_node *tempStartPtr;
+		printf("i am before freeing startlist\n");
+		while (startPtr != NULL) {
+			tempStartPtr = startPtr;
+			startPtr = startPtr->next;
+			free(tempStartPtr);
+		}
+		startHead = NULL;
+		startRear = NULL;
+		pthread_mutex_unlock(&start_mutex);
+		printf("got past freeing startlist\n");
 		//  NEED TO GET COLUMNINDEX TO SORT ON
 		pthread_mutex_lock(&records_mutex);
-		printf("~DUMPX~ received!\n");
-		//sleep(10);
+
+		//sleep(30);
 		record *ptr = malloc(sizeof(record));
 		record *temp = malloc(sizeof(record));
 		ptr = globalHead;
@@ -239,13 +280,14 @@ void * service(void *args) {
 	} else {
 		printf("invalid request type\n");
 	}
+	memset(req_buf, 0, 8);
 	close(client_socket);
 
 	pthread_mutex_lock(&numThreads_mutex);
 	num_of_thread--;
 	pthread_mutex_unlock(&numThreads_mutex);
 
-	//pthread_exit(0);
+	pthread_exit(0);
 	return NULL;
 }
 
@@ -259,6 +301,9 @@ int main(int argc, char **argv) {
 	struct sockaddr_in server_address, client_address;
 	globalHead = NULL;
 	globalRear = NULL;
+	
+	startHead = NULL;
+	startRear = NULL;
 
 	/* STEP 1: create socket and setup sockaddr_in */
 	// REMEMBER: ALWAYS CHECK FAILURE WHEN YOU DO I/O
@@ -320,13 +365,13 @@ int main(int argc, char **argv) {
 			pthread_mutex_lock(&tid_pool_mutex);
 			pthread_create(&tid_pool[i].tid, NULL, service, (void *) (intptr_t) i);
 			pthread_mutex_unlock(&tid_pool_mutex);
-			//printf("done creating thread\n");
+			printf("TID used in create: %u\n", (unsigned int) tid_pool[i].tid);
 			pthread_mutex_lock(&numThreads_mutex);
 			num_of_thread++;
 			pthread_mutex_unlock(&numThreads_mutex);
 			
 			pthread_mutex_lock(&tid_pool_mutex);
-			pthread_join(tid_pool[i].tid, NULL);
+			//pthread_join(tid_pool[i].tid, NULL);
 			release_tid(i);
 			pthread_mutex_unlock(&tid_pool_mutex);
 		//}

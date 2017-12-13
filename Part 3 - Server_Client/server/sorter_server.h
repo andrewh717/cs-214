@@ -41,6 +41,11 @@ typedef struct tid_type
 	int socketfd;
 }tid_type;
 
+typedef struct tid_node {
+	pthread_t tid;
+	struct tid_node *next;
+}tid_node;
+
 void trim(char *str);
 
 int checkForDuplicates(char **str, int numStrings);
