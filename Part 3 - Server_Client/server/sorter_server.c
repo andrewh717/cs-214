@@ -333,14 +333,15 @@ int main(int argc, char **argv) {
 
 	client_length = sizeof(client_address);
 	
+	//fflush(0);
 	printf("Received connections from: \n");
-
+	fflush(0);
+	
 	init_tid_pool();
 	
 	// Wait for connects using infinite loop
 	while (status) {
 		client_sock = accept(server_sock, (struct sockaddr *) &client_address, &client_length);
-		
 		// Check if accept() is successful or not
 		if (client_sock < 0) {
 			perror("accept");
@@ -353,7 +354,9 @@ int main(int argc, char **argv) {
 		struct in_addr ipAddr = ipV4Addr->sin_addr;
 		char ipStr[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &ipAddr, ipStr, INET_ADDRSTRLEN);
-		printf(" %s,", ipStr); 
+
+		printf(" %s,", ipStr);
+		fflush(0);
 		
 		int i = get_tid();
 		
