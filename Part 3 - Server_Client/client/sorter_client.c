@@ -186,7 +186,7 @@ void * traverseDirectory(void * args){
 	
 	char line[500];
 	int charWrite;
-	
+	int fileNum = 0;
 	memset(line, 0, sizeof(line));
 	
 	//We will be reading through everything in the current directory.
@@ -207,7 +207,7 @@ void * traverseDirectory(void * args){
 			if((strcmp(currentObject->d_name, "..") == 0) || (strcmp(currentObject->d_name, ".") == 0)){
 				continue;
 			}
-			printf("looking at directory... %s\n", currentObject->d_name);
+			//printf("looking at directory... %s\n", currentObject->d_name);
 			//We create a char array located in the stack that will hold the path to the new directory we must traverse.
 			char* newPath = NULL;
 			newPath = getcwd(newPath, 1024);
@@ -256,7 +256,7 @@ void * traverseDirectory(void * args){
 		}
 		//The currentObject is a file so...
 		else{
-			printf("current file looked at = %s\n", currentObject->d_name);
+			//printf("current file looked at = %s\n", currentObject->d_name);
 			//Ignore an already sorted file
 			if(strstr(currentObject->d_name, "-sorted")){
 					continue;
@@ -282,12 +282,12 @@ void * traverseDirectory(void * args){
 				socketFD = socket(AF_INET, SOCK_STREAM, 0);
 	
 				if(socketFD < 0){
-					perror("Fatal Error: Socket Creation\n");
+					perror("Fatal Error: Socket Creation");
 					exit(EXIT_FAILURE);
 				}
 	
 				if(connect(socketFD, (struct sockaddr*)&socketAddress, sizeof(socketAddress)) < 0){
-					perror("Fatal Error: Socket Connection\n");
+					perror("Fatal Error: Socket Connection");
 					close(socketFD);
 					exit(EXIT_FAILURE);
 				}
@@ -295,28 +295,32 @@ void * traverseDirectory(void * args){
 				FILE * currentFile = fopen(currentObject->d_name, "r");
 			
 				//Now, open the file and send line by line
-				charWrite = write(socketFD, "~START~", 8);
+				charWrite = write(socketFD, "~STARTX~", 9);
 				fgets(line, 500, currentFile);
 				charWrite = write(socketFD, line, 500);
 				memset(line, 0, sizeof(line));
 				int linesSent = 0;
 				
 				while(fgets(line, 500, currentFile)){
-					printf("Writing to server line: %s\n", line);
+					//printf("Writing to server line: %s\n", line);
 					linesSent++;
 					charWrite = write(socketFD, line, 500);
-					printf("LinesSent = %d\n", linesSent);
-					if(charWrite == -1){
+					//printf("LinesSent = %d\n", linesSent);
+					//printf(" ");
+					if(charWrite <= 0){
 						perror("Socket Write");
+						break;
 					}
 					
-					printf("Num chars written = %d\n", charWrite);
+					//printf("File num looking at = %d\n", fileNum);
+					//printf("Num chars written = %d\n", charWrite);
 					
 					memset(line, 0, sizeof(line));
 				}
 				
 				charWrite = write(socketFD, "~END~", 6);
 				fclose(currentFile);
+				fileNum++;
 			}
 		}
 		
@@ -357,9 +361,9 @@ int main(int argc, char ** argv) {
 	int err;
 	traverseDirectoryArgs* args = malloc(sizeof(traverseDirectoryArgs));
 	//printf("\nargc = %d\n", argc);
-	int initPID = getpid();
-	printf("Initial PID: %d\n", initPID);
-	printf("\tTIDS of all child threads: ");
+	//int initPID = getpid();
+	//printf("Initial PID: %d\n", initPID);
+	//printf("\tTIDS of all child threads: ");
 	
 	//The input format will be incorrect if argc is 1, or an even number
 	if((argc == 1) || ((argc % 2) == 0)){
@@ -404,7 +408,7 @@ int main(int argc, char ** argv) {
 				
 			case 3:
 				if(strcmp(argv[i], "-h") == 0) {
-					printf("hostname = %s\n", argv[i+1]);
+					//printf("hostname = %s\n", argv[i+1]);
 					server = gethostbyname(argv[i+1]);
 					if(server == NULL){
 						printf("Fatal Error: Host does not exist.");
@@ -425,7 +429,7 @@ int main(int argc, char ** argv) {
 				
 			case 5:
 				if(strcmp(argv[i], "-p") == 0) {
-					printf("portnum = %s\n", argv[i+1]);
+					//printf("portnum = %s\n", argv[i+1]);
 					portnum = atoi(argv[i+1]);
 					
 					i++;
@@ -515,6 +519,7 @@ int main(int argc, char ** argv) {
 						void * (*traverseFuncPointer)(void*) = traverseDirectory;
 						
 						err = pthread_create(&tid, NULL, traverseFuncPointer, (void*)args);
+						
 						if(err != 0) {
 							printf("Fatal error: Thread did not create properly\n");
 							exit(0);
@@ -605,6 +610,7 @@ int main(int argc, char ** argv) {
 						void * (*traverseFuncPointer)(void*) = traverseDirectory;
 						
 						err = pthread_create(&tid, NULL, traverseFuncPointer, (void*)args);
+						
 						if(err != 0) {
 							printf("Fatal error: Thread did not create properly\n");
 							exit(0);
@@ -674,6 +680,7 @@ int main(int argc, char ** argv) {
 		void * (*traverseFuncPointer)(void*) = traverseDirectory;
 						
 		err = pthread_create(&tid, NULL, traverseFuncPointer, (void*)args);
+		
 		if(err != 0) {
 			printf("Fatal error: Thread did not create properly\n");
 			exit(0);
@@ -687,8 +694,9 @@ int main(int argc, char ** argv) {
 	
 	//printf("END OF MAIN THREADIDSHEAD TID = %u\n", (unsigned int) threadIdsHead->tid);
 	
+	
 	while((*runningThreadCount) > 0){
-		printf("runningThreadCount = %d\n", *runningThreadCount);
+		//printf("runningThreadCount = %d\n", *runningThreadCount);
 		sleep(1);
 	}
 	
@@ -704,8 +712,8 @@ int main(int argc, char ** argv) {
 	memset(line, 0, sizeof(line));
 	
 	//Request connection to server to write to all-sorted file
-	printf("server = %s\n", argv[4]);
-	printf("portnum = %d\n", portnum);
+	//printf("server = %s\n", argv[4]);
+	//printf("portnum = %d\n", portnum);
 	
 	memset(&socketAddress, 0, sizeof(socketAddress));
 	
@@ -718,12 +726,12 @@ int main(int argc, char ** argv) {
 	socketFD = socket(AF_INET, SOCK_STREAM, 0);
 	
 	if(socketFD < 0){
-		perror("Fatal Error: Socket Creation\n");
+		perror("Fatal Error: Socket Creation");
 		exit(EXIT_FAILURE);
 	}
 	
 	if(connect(socketFD, (struct sockaddr*)&socketAddress, sizeof(socketAddress)) < 0){
-		perror("Fatal Error: Socket Connection\n");
+		perror("Fatal Error: Socket Connection");
 		close(socketFD);
 		exit(EXIT_FAILURE);
 	}
@@ -740,25 +748,36 @@ int main(int argc, char ** argv) {
 	
 	FILE* finalFile = fopen(finalFilePath, "w");
 	int charsRead;
+	char sortBy[3];
 	//Here, print to file using data from server.
 	
 	//Repeat this until end of file
-	charsRead = write(socketFD, "~DUMPX~", 8);
+	charsRead = write(socketFD, "~DUMPXY~", 9);
+	snprintf(sortBy, 3, "%d", sortingBy);
+	
+	charsRead = write(socketFD, sortBy, 3);
 	while(1){
+		memset(line, 0, sizeof(line));
 		charsRead = read(socketFD, line, 500);
-		if(charsRead <= 0){
+		if(charsRead < 0){
 			perror("Socket Read");
 			memset(line, 0, sizeof(line));
 			break;
 		}
+		else if(charsRead == 0){
+			memset(line, 0, sizeof(line));
+			break;
+		}
+		printf("Num chars received = %d\n", charsRead);
+		printf("Line received = %s\n", line);
 		fprintf(finalFile, line);
 		
-		memset(line, 0, sizeof(line));
+		
 	}
 	
 	close(socketFD);
 	fclose(finalFile);
 	
-	printf("\n\tTotal number of threads: %d\n", *totalThreads);
+	//printf("\n\tTotal number of threads: %d\n", *totalThreads);
 	return 0;
 }
