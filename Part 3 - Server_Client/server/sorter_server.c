@@ -1,34 +1,28 @@
 #include "sorter_server.h"
 
-/* Macros (define your macros below) */
 #define MAX_NUM_THREAD 2000
-
-// Port numbers
-#define PORT 9697
-
-/********** Global variables/structures ***********/
 
 pthread_mutex_t file_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-int status = 1; // for server running status
-int num_of_thread = 0; // currently created num of threads
-
-pthread_mutex_t records_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t numRecords_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t tid_pool_mutex = PTHREAD_MUTEX_INITIALIZER;
+int status = 1; 
+int num_of_thread = 0; // Number of currently created threads
 pthread_mutex_t numThreads_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+// Pointers to linked list that holds the CSV data
 record *globalHead;
 record *globalRear;
+pthread_mutex_t records_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-int numRecords = 0;
+int numRecords = 0; // Number of records stored in the linked list
+pthread_mutex_t numRecords_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-int numStart = 0;
+int numStart = 0; // Number of ~STARTX~ requests received
 pthread_mutex_t numStart_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-/* Global thread id pool */
 tid_type tid_pool[MAX_NUM_THREAD];
+pthread_mutex_t tid_pool_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+// Pointers to linked list that stores TIDs of threads assigned to handle ~STARTX~ requests
 tid_node *startHead;
 tid_node *startRear;
 pthread_mutex_t start_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -37,20 +31,17 @@ pthread_mutex_t start_mutex = PTHREAD_MUTEX_INITIALIZER;
 /********** Helper functions ***********/
 void init_tid_pool() {
 	int i;
-	for(i = 0; i < MAX_NUM_THREAD; i++)
-	{
+	for (i = 0; i < MAX_NUM_THREAD; i++) {
 		tid_pool[i].isFree = 1;
 		tid_pool[i].socketfd = -1;
 	}
 }
 
-/* return the index of available tid in pool */
+// Returns the index of available TID in pool
 int get_tid() {
 	int i;
-	for (i = 0; i < MAX_NUM_THREAD; i++)
-	{
-		if (tid_pool[i].isFree == 1)
-		{
+	for (i = 0; i < MAX_NUM_THREAD; i++) {
+		if (tid_pool[i].isFree == 1) {
 			return i;
 		}
 	}
@@ -81,7 +72,7 @@ void trim(char *str) {
 void processData(char *buffer) {
 	//printf("I HAVE ENTERED PROCESSDATA\n");
 	record *ptr = malloc(sizeof(record));
-	if(globalHead == NULL) {
+	if (globalHead == NULL) {
 		// malloc record
 		// add to global list?
 		globalHead = malloc(sizeof(record));
@@ -97,7 +88,7 @@ void processData(char *buffer) {
 	}
 	char *token, *end = buffer;
 	int currentToken = 0;
-	while(end != NULL) {
+	while (end != NULL) {
 		if (end[0] != '\"') {
 			token = strsep(&end, ",");	
 		} else {
@@ -144,9 +135,6 @@ record * freeRecord(record *ptr) {
 // Define your service function to serve requests
 // Service thread should read in a client request and handle it
 void * service(void *args) {
-	// this is the socket for our server 
-	// to talk to client
-	//printf("i have entered the service method\n");
 	int index = (intptr_t)args;
 	int client_socket = tid_pool[index].socketfd;
 
@@ -177,13 +165,10 @@ void * service(void *args) {
 			startRear = startRear->next;
 		}
 		pthread_mutex_unlock(&start_mutex);
-		// Prepare to read in CSV contents
-		//int receivingCSV = 1;
-		int counter = 0;
 		
+		int counter = 0;
 		//printf("~START~ received!\n");
 		sleep(2);
-		//while(receivingCSV == 1) {
 		while (read(client_socket, recv_buf, 500) > 0) {
 			//printf("Counter: %d\n", counter);
 			pthread_mutex_lock(&records_mutex);
@@ -194,8 +179,7 @@ void * service(void *args) {
 				counter++;
 				continue;
 			}
-			
-			if(strcmp(recv_buf, "~END~") == 0){
+			if (strcmp(recv_buf, "~END~") == 0) {
 				//printf("%s\n", recv_buf);
 				memset(recv_buf, 0, 500);
 				break;
@@ -208,12 +192,12 @@ void * service(void *args) {
 		}
 	} 
 	// DUMP request received
-	else if(strcmp(req_buf, dump_req) == 0) {		
+	else if (strcmp(req_buf, dump_req) == 0) {		
 		// Prepare to send sorted CSV
 		//printf("~DUMPX~ received!\n");
 		char columnIndex_buf[3];
 		int columnIndex;
-		if(read(client_socket, columnIndex_buf, 3) < 0){
+		if (read(client_socket, columnIndex_buf, 3) < 0) {
 			perror("read");
 			exit(EXIT_FAILURE);
 		}
@@ -256,8 +240,8 @@ void * service(void *args) {
 		count = 0;
 		int i;
 		char send[500];
-		while(ptr != NULL){
-			for(i = 0; i < 28; i++){
+		while (ptr != NULL) {
+			for (i = 0; i < 28; i++) {
 				if (i != 27) {
 					//printf("about to access token#%d in loop#%d\n", i, count);
 					strcat(send, ptr->line[i]);
@@ -268,7 +252,7 @@ void * service(void *args) {
 					strcat(send, "\n");
 				}
 			}
-			if(write(client_socket, send, 500) < 0){
+			if (write(client_socket, send, 500) < 0) {
 				perror("write");
 				exit(EXIT_FAILURE);
 			}
@@ -287,8 +271,8 @@ void * service(void *args) {
 		globalRear = NULL;
 		
 		pthread_mutex_unlock(&records_mutex);
-		printf("\nDump completed successfully.\n");
-		printf("Column Index sorted: %d\n", columnIndex);
+		//printf("\nDump completed successfully.\n");
+		//printf("Column Index sorted: %d\n", columnIndex);
 	} else {
 		printf("invalid request type\n");
 	}
@@ -309,19 +293,23 @@ void * service(void *args) {
 /////// Part 2: Main Function ///////////////
 
 int main(int argc, char **argv) {
-	// optional: You can add args checking here
+	if (argc != 3 || strcmp(argv[1], "-p") != 0) {
+		perror("invalid parameters");
+		exit(EXIT_FAILURE);
+	}
+	uint16_t port = (uint16_t) atoi(argv[2]);
 		
 	int server_sock, client_sock;
 	socklen_t client_length;
 	struct sockaddr_in server_address, client_address;
+	
 	globalHead = NULL;
 	globalRear = NULL;
 	
 	startHead = NULL;
 	startRear = NULL;
 
-	/* STEP 1: create socket and setup sockaddr_in */
-	// REMEMBER: ALWAYS CHECK FAILURE WHEN YOU DO I/O
+	// Check if socket() is successful or not
 	if ((server_sock = socket(AF_INET, SOCK_STREAM, 0)) <= 0) {
 		perror("socket");
 		exit(EXIT_FAILURE);
@@ -329,16 +317,14 @@ int main(int argc, char **argv) {
 
 	server_address.sin_family = AF_INET;
     server_address.sin_addr.s_addr = INADDR_ANY;
-	server_address.sin_port = htons(PORT);
+	server_address.sin_port = htons(port);
 	
-	/* STEP 2: bind */
 	if (bind(server_sock, (struct sockaddr*)&server_address, sizeof(server_address)) < 0) {
 		perror("bind");
 		close(server_sock);
 		exit(EXIT_FAILURE);
 	}
 
-	/* STEP 3: Listen */
 	if (listen(server_sock, 0) < 0) {
 		perror("listen");
 		close(server_sock);
@@ -353,14 +339,9 @@ int main(int argc, char **argv) {
 	
 	// Wait for connects using infinite loop
 	while (status) {
-		/* STEP 4: accept connection request */
-		// use client socket to accept client request
-		// accept(int server_socket, NULL, NULL)
-		// you can setup the second and third arguments other 
-		// than NULL
 		client_sock = accept(server_sock, (struct sockaddr *) &client_address, &client_length);
 		
-		// check if accept() is successful or not
+		// Check if accept() is successful or not
 		if (client_sock < 0) {
 			perror("accept");
 			close(server_sock);
@@ -390,8 +371,6 @@ int main(int argc, char **argv) {
 		release_tid(i);
 		pthread_mutex_unlock(&tid_pool_mutex);
 	}
-	
-	/* clean up */
 	close(server_sock);
 	return 0;
 }
