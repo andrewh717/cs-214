@@ -1,4 +1,3 @@
-// Authors: Andrew Hernandez & Michael Belmont
 // CS214: Systems Programming Fall 2017
 #ifndef SORTER_SERVER_H_
 #define SORTER_SERVER_H_

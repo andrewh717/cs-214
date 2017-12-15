@@ -770,6 +770,7 @@ int main(int argc, char ** argv) {
 		}
 		printf("Num chars received = %d\n", charsRead);
 		printf("Line received = %s\n", line);
+	
 		fprintf(finalFile, line);
 		
 		

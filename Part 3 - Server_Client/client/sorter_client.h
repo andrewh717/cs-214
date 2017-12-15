@@ -89,8 +89,5 @@
 	void * traverseDirectory(void * args);
 	//void printNodes(movie * currPtr, FILE* outputFile);
 
-	//Prototypes for the functions we're using in mergesort.c - DOCUMENTATION IS IN THAT FILE
-	void merge(movie ** front, int sortingBy);
-	movie * sorted(movie * first, movie * second, int sortingBy);
-	void split(movie * source, movie ** first, movie ** second);
+
 #endif
